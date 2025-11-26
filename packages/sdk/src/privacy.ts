@@ -1,5 +1,8 @@
 /**
  * Privacy level handling for SIP Protocol
+ *
+ * IMPORTANT: Encryption functions require real ChaCha20-Poly1305 implementation.
+ * Functions will throw EncryptionNotImplementedError until implemented.
  */
 
 import type {
@@ -11,6 +14,7 @@ import type {
 } from '@sip-protocol/types'
 import { sha256 } from '@noble/hashes/sha256'
 import { bytesToHex, randomBytes } from '@noble/hashes/utils'
+import { EncryptionNotImplementedError } from './errors'
 
 /**
  * Privacy configuration for an intent
@@ -101,67 +105,48 @@ export function deriveViewingKey(
 
 /**
  * Encrypt transaction data for viewing key holders
- * Note: This is a simplified mock - real implementation would use proper encryption
+ *
+ * Uses ChaCha20-Poly1305 authenticated encryption.
+ *
+ * @throws {EncryptionNotImplementedError} Real ChaCha20-Poly1305 implementation required
+ * @see docs/specs/VIEWING-KEY.md for specification
  */
 export function encryptForViewing(
-  data: {
+  _data: {
     sender: string
     recipient: string
     amount: string
     timestamp: number
   },
-  viewingKey: ViewingKey,
+  _viewingKey: ViewingKey,
 ): EncryptedTransaction {
-  // Mock encryption (XOR with hash of viewing key)
-  // In production: use proper authenticated encryption (ChaCha20-Poly1305, etc.)
-  const plaintext = JSON.stringify(data)
-  const nonce = randomBytes(12)
-  const keyHash = sha256(new TextEncoder().encode(viewingKey.key))
-
-  // Simple XOR encryption (NOT secure - demo only)
-  const plaintextBytes = new TextEncoder().encode(plaintext)
-  const ciphertext = new Uint8Array(plaintextBytes.length)
-  for (let i = 0; i < plaintextBytes.length; i++) {
-    ciphertext[i] = plaintextBytes[i] ^ keyHash[i % keyHash.length]
-  }
-
-  return {
-    ciphertext: `0x${bytesToHex(ciphertext)}` as HexString,
-    nonce: `0x${bytesToHex(nonce)}` as HexString,
-    viewingKeyHash: viewingKey.hash,
-  }
+  throw new EncryptionNotImplementedError(
+    'encrypt',
+    'docs/specs/VIEWING-KEY.md',
+  )
 }
 
 /**
  * Decrypt transaction data with viewing key
+ *
+ * Uses ChaCha20-Poly1305 authenticated decryption.
+ *
+ * @throws {EncryptionNotImplementedError} Real ChaCha20-Poly1305 implementation required
+ * @see docs/specs/VIEWING-KEY.md for specification
  */
 export function decryptWithViewing(
-  encrypted: EncryptedTransaction,
-  viewingKey: ViewingKey,
+  _encrypted: EncryptedTransaction,
+  _viewingKey: ViewingKey,
 ): {
   sender: string
   recipient: string
   amount: string
   timestamp: number
 } {
-  // Verify viewing key hash matches
-  const hashBytes = sha256(new TextEncoder().encode(viewingKey.key))
-  const computedHash = `0x${bytesToHex(hashBytes)}` as Hash
-
-  if (computedHash !== encrypted.viewingKeyHash) {
-    throw new Error('Viewing key does not match encrypted data')
-  }
-
-  // Mock decryption (reverse XOR)
-  const ciphertextBytes = hexToBytes(encrypted.ciphertext.slice(2))
-  const keyHash = sha256(new TextEncoder().encode(viewingKey.key))
-  const plaintext = new Uint8Array(ciphertextBytes.length)
-  for (let i = 0; i < ciphertextBytes.length; i++) {
-    plaintext[i] = ciphertextBytes[i] ^ keyHash[i % keyHash.length]
-  }
-
-  const decoded = new TextDecoder().decode(plaintext)
-  return JSON.parse(decoded)
+  throw new EncryptionNotImplementedError(
+    'decrypt',
+    'docs/specs/VIEWING-KEY.md',
+  )
 }
 
 /**
@@ -183,11 +168,4 @@ export function getPrivacyDescription(level: PrivacyLevel): string {
   return descriptions[level]
 }
 
-// Helper to convert hex to bytes
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
-  }
-  return bytes
-}
+// hexToBytes removed - was only needed for mocked XOR encryption

@@ -20,6 +20,13 @@
  * ```
  */
 
+// Errors
+export {
+  SIPError,
+  ProofNotImplementedError,
+  EncryptionNotImplementedError,
+} from './errors'
+
 // Main client
 export { SIP, createSIP } from './sip'
 export type { SIPConfig, WalletAdapter } from './sip'
@@ -28,6 +35,8 @@ export type { SIPConfig, WalletAdapter } from './sip'
 export {
   IntentBuilder,
   createShieldedIntent,
+  attachProofs,
+  hasRequiredProofs,
   trackIntent,
   isExpired,
   getTimeRemaining,

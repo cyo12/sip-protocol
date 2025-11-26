@@ -20,8 +20,6 @@ import {
 import { generateStealthAddress, decodeStealthMetaAddress } from './stealth'
 import {
   createCommitment,
-  createFundingProof,
-  createValidityProof,
   generateIntentId,
   hash,
 } from './crypto'
@@ -164,11 +162,12 @@ export function createShieldedIntent(
     }
   }
 
-  // Create proofs
-  const fundingProof = createFundingProof(input.amount, inputCommitment)
-  const validityProof = createValidityProof(intentId, senderCommitment)
-
   const now = Math.floor(Date.now() / 1000)
+
+  // Note: Proofs are NOT generated here - they require real ZK circuits
+  // For TRANSPARENT mode: proofs are not required
+  // For SHIELDED/COMPLIANT: proofs must be added via attachProofs() when available
+  // See #14, #15, #16 for proof implementation
 
   return {
     intentId,
@@ -185,11 +184,50 @@ export function createShieldedIntent(
     senderCommitment,
     recipientStealth,
 
-    fundingProof,
-    validityProof,
+    // Proofs are undefined until real ZK implementation is available
+    // TRANSPARENT mode: proofs not required
+    // SHIELDED/COMPLIANT mode: proofs must be attached before submission
+    fundingProof: undefined as any,
+    validityProof: undefined as any,
 
     viewingKeyHash: privacyConfig.viewingKey?.hash,
   }
+}
+
+/**
+ * Attach proofs to a shielded intent
+ *
+ * For SHIELDED and COMPLIANT modes, proofs are required before the intent
+ * can be submitted. This function attaches the proofs to an intent.
+ *
+ * @param intent - The intent to attach proofs to
+ * @param fundingProof - The funding proof (balance >= minimum)
+ * @param validityProof - The validity proof (authorization)
+ * @returns The intent with proofs attached
+ */
+export function attachProofs(
+  intent: ShieldedIntent,
+  fundingProof: import('@sip-protocol/types').ZKProof,
+  validityProof: import('@sip-protocol/types').ZKProof,
+): ShieldedIntent {
+  return {
+    ...intent,
+    fundingProof,
+    validityProof,
+  }
+}
+
+/**
+ * Check if an intent has all required proofs
+ */
+export function hasRequiredProofs(intent: ShieldedIntent): boolean {
+  // TRANSPARENT mode doesn't require proofs
+  if (intent.privacyLevel === 'transparent') {
+    return true
+  }
+
+  // SHIELDED and COMPLIANT modes require both proofs
+  return !!(intent.fundingProof && intent.validityProof)
 }
 
 /**

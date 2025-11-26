@@ -1,15 +1,18 @@
 /**
  * Cryptographic utilities for SIP Protocol
  *
- * Implements Pedersen commitments and mock ZK proofs.
- * Note: ZK proofs are mocked for the hackathon demo - real implementation
- * would use a proper ZK proving system (e.g., Groth16, PLONK).
+ * Implements Pedersen commitments and ZK proof interfaces.
+ *
+ * IMPORTANT: ZK proof generation requires real Noir circuits.
+ * Proof functions will throw ProofNotImplementedError until
+ * real implementations are available (#14, #15, #16).
  */
 
 import { secp256k1 } from '@noble/curves/secp256k1'
 import { sha256 } from '@noble/hashes/sha256'
 import { bytesToHex, hexToBytes, randomBytes } from '@noble/hashes/utils'
 import type { Commitment, ZKProof, HexString, Hash } from '@sip-protocol/types'
+import { ProofNotImplementedError } from './errors'
 
 // Generator point H for Pedersen commitments (nothing-up-my-sleeve point)
 // H = hash_to_curve("SIP-PROTOCOL-H")
@@ -66,83 +69,73 @@ export function verifyCommitment(
 }
 
 /**
- * Create a mock funding proof
- * In production, this would generate a real ZK proof showing:
- * - User has sufficient funds to cover the intent
- * - Without revealing: exact balance, source of funds
+ * Create a funding proof (ZK proof of sufficient funds)
+ *
+ * Proves: balance >= minimum_required without revealing balance.
+ *
+ * @throws {ProofNotImplementedError} Real Noir circuit implementation required
+ * @see docs/specs/FUNDING-PROOF.md for specification (~22,000 constraints)
  */
 export function createFundingProof(
-  inputAmount: bigint,
-  inputCommitment: Commitment,
+  _inputAmount: bigint,
+  _inputCommitment: Commitment,
 ): ZKProof {
-  // Mock proof generation
-  // In production: use a ZK proving system
-  const proofData = sha256(
-    new TextEncoder().encode(
-      `funding:${inputAmount}:${inputCommitment.value}:${Date.now()}`,
-    ),
+  throw new ProofNotImplementedError(
+    'funding',
+    'docs/specs/FUNDING-PROOF.md',
   )
-
-  return {
-    type: 'funding',
-    proof: `0x${bytesToHex(proofData)}` as HexString,
-    publicInputs: [inputCommitment.value],
-  }
 }
 
 /**
- * Create a mock validity proof
- * In production, this would generate a real ZK proof showing:
- * - Intent is well-formed and authorized
- * - Without revealing: sender identity, input details
+ * Create a validity proof (ZK proof of intent authorization)
+ *
+ * Proves: intent is authorized by sender without revealing sender identity.
+ *
+ * @throws {ProofNotImplementedError} Real Noir circuit implementation required
+ * @see docs/specs/VALIDITY-PROOF.md for specification (~72,000 constraints)
  */
 export function createValidityProof(
-  intentId: string,
-  senderCommitment: Commitment,
+  _intentId: string,
+  _senderCommitment: Commitment,
 ): ZKProof {
-  // Mock proof generation
-  const proofData = sha256(
-    new TextEncoder().encode(
-      `validity:${intentId}:${senderCommitment.value}:${Date.now()}`,
-    ),
+  throw new ProofNotImplementedError(
+    'validity',
+    'docs/specs/VALIDITY-PROOF.md',
   )
-
-  return {
-    type: 'validity',
-    proof: `0x${bytesToHex(proofData)}` as HexString,
-    publicInputs: [senderCommitment.value],
-  }
 }
 
 /**
- * Create a mock fulfillment proof
- * Proves that the solver correctly fulfilled the intent
+ * Create a fulfillment proof (ZK proof of correct execution)
+ *
+ * Proves: solver delivered output >= minimum to correct recipient.
+ *
+ * @throws {ProofNotImplementedError} Real Noir circuit implementation required
+ * @see docs/specs/FULFILLMENT-PROOF.md for specification (~22,000 constraints)
  */
 export function createFulfillmentProof(
-  intentId: string,
-  outputAmount: bigint,
+  _intentId: string,
+  _outputAmount: bigint,
 ): ZKProof {
-  const proofData = sha256(
-    new TextEncoder().encode(
-      `fulfillment:${intentId}:${outputAmount}:${Date.now()}`,
-    ),
+  throw new ProofNotImplementedError(
+    'fulfillment',
+    'docs/specs/FULFILLMENT-PROOF.md',
   )
-
-  return {
-    type: 'fulfillment',
-    proof: `0x${bytesToHex(proofData)}` as HexString,
-    publicInputs: [],
-  }
 }
 
 /**
- * Verify a mock proof (always returns true for mocks)
- * In production: actual ZK verification
+ * Verify a ZK proof
+ *
+ * Verifies proof validity using the appropriate verification circuit.
+ *
+ * @throws {ProofNotImplementedError} Real Noir verifier implementation required
  */
-export function verifyProof(proof: ZKProof): boolean {
-  // Mock verification - always true for demo
-  // In production: actual cryptographic verification
-  return proof.proof.length > 2
+export function verifyProof(_proof: ZKProof): boolean {
+  // TODO: Implement real verification when circuits are ready (#14, #15, #16)
+  // For now, throw error to prevent false security assumptions
+  throw new ProofNotImplementedError(
+    'funding', // Generic - could be any proof type
+    'docs/specs/',
+  )
 }
 
 /**
