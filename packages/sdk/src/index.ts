@@ -179,3 +179,33 @@ export type {
   HexString,
   Hash,
 } from '@sip-protocol/types'
+
+// Network Adapters
+export {
+  OneClickClient,
+  NEARIntentsAdapter,
+  createNEARIntentsAdapter,
+} from './adapters'
+
+export type {
+  SwapRequest,
+  PreparedSwap,
+  SwapResult,
+  NEARIntentsAdapterConfig,
+} from './adapters'
+
+// Re-export NEAR Intents types for convenience
+export {
+  OneClickSwapType,
+  OneClickSwapStatus,
+  OneClickDepositMode,
+  OneClickErrorCode,
+} from '@sip-protocol/types'
+
+export type {
+  OneClickConfig,
+  OneClickQuoteRequest,
+  OneClickQuoteResponse,
+  OneClickStatusResponse,
+  DefuseAssetId,
+} from '@sip-protocol/types'
