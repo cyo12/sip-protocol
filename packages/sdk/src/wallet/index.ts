@@ -47,6 +47,43 @@ export type {
   MockSolanaAdapterConfig,
 } from './solana'
 
+// Ethereum adapter
+export {
+  EthereumWalletAdapter,
+  createEthereumAdapter,
+  MockEthereumAdapter,
+  createMockEthereumAdapter,
+  createMockEthereumProvider,
+  getEthereumProvider,
+  detectEthereumWallets,
+  toHex,
+  fromHex,
+  hexToNumber,
+  normalizeAddress,
+  getDefaultRpcEndpoint,
+  EthereumChainId,
+} from './ethereum'
+
+export type {
+  EIP1193Provider,
+  EIP1193RequestArguments,
+  EIP1193Event,
+  EIP1193ConnectInfo,
+  EIP1193ProviderRpcError,
+  EIP712Domain,
+  EIP712TypeDefinition,
+  EIP712Types,
+  EIP712TypedData,
+  EthereumTransactionRequest,
+  EthereumTransactionReceipt,
+  EthereumTokenMetadata,
+  EthereumChainMetadata,
+  EthereumWalletName,
+  EthereumAdapterConfig,
+  EthereumChainIdType,
+  MockEthereumAdapterConfig,
+} from './ethereum'
+
 // Re-export types from types package for convenience
 export type {
   // Core types

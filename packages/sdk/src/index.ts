@@ -298,6 +298,20 @@ export {
   detectSolanaWallets,
   solanaPublicKeyToHex,
   base58ToHex,
+  // Ethereum
+  EthereumWalletAdapter,
+  createEthereumAdapter,
+  MockEthereumAdapter,
+  createMockEthereumAdapter,
+  createMockEthereumProvider,
+  getEthereumProvider,
+  detectEthereumWallets,
+  toHex,
+  fromHex,
+  hexToNumber,
+  normalizeAddress,
+  getDefaultRpcEndpoint,
+  EthereumChainId,
 } from './wallet'
 
 export type {
@@ -334,4 +348,22 @@ export type {
   SolanaUnsignedTransaction,
   SolanaSignature,
   MockSolanaAdapterConfig,
+  // Ethereum types
+  EIP1193Provider,
+  EIP1193RequestArguments,
+  EIP1193Event,
+  EIP1193ConnectInfo,
+  EIP1193ProviderRpcError,
+  EIP712Domain,
+  EIP712TypeDefinition,
+  EIP712Types,
+  EIP712TypedData,
+  EthereumTransactionRequest,
+  EthereumTransactionReceipt,
+  EthereumTokenMetadata,
+  EthereumChainMetadata,
+  EthereumWalletName,
+  EthereumAdapterConfig,
+  EthereumChainIdType,
+  MockEthereumAdapterConfig,
 } from './wallet'
