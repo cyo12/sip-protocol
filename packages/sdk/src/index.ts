@@ -194,6 +194,27 @@ export type {
   NEARIntentsAdapterConfig,
 } from './adapters'
 
+// Solver
+export { MockSolver, createMockSolver } from './solver'
+export type { MockSolverConfig } from './solver'
+
+// Re-export solver types
+export type {
+  Solver,
+  SolverCapabilities,
+  SolverVisibleIntent,
+  SolverQuote,
+  SIPSolver,
+  FulfillmentStatus,
+  FulfillmentRequest,
+  FulfillmentCommitment,
+  FulfillmentProof,
+  SwapRoute,
+  SwapRouteStep,
+  SolverEvent,
+  SolverEventListener,
+} from '@sip-protocol/types'
+
 // Re-export NEAR Intents types for convenience
 export {
   OneClickSwapType,

@@ -49,9 +49,18 @@ export type {
 // Solver
 export type {
   Solver,
+  SolverCapabilities,
+  SolverVisibleIntent,
+  SolverQuote,
+  SwapRoute,
+  SwapRouteStep,
   SIPSolver,
+  FulfillmentStatus,
   FulfillmentRequest,
   FulfillmentCommitment,
+  FulfillmentProof,
+  SolverEvent,
+  SolverEventListener,
 } from './solver'
 
 // NEAR Intents
