@@ -53,3 +53,35 @@ export type {
   FulfillmentRequest,
   FulfillmentCommitment,
 } from './solver'
+
+// NEAR Intents
+export {
+  OneClickSwapType,
+  OneClickDepositMode,
+  OneClickSwapStatus,
+  SolverIntentStatus,
+  SolverSignatureType,
+  OneClickErrorCode,
+} from './near-intents'
+export type {
+  DefuseAssetId,
+  ChainType,
+  OneClickToken,
+  OneClickAppFee,
+  OneClickQuoteRequest,
+  OneClickQuoteResponse,
+  OneClickDepositSubmit,
+  OneClickStatusResponse,
+  OneClickWithdrawal,
+  SolverQuoteRequest,
+  SolverQuoteResponse,
+  SolverSignedData,
+  SolverPublishIntent,
+  SolverStatusResponse,
+  TokenDiffIntent,
+  SolverQuoteEvent,
+  SolverQuoteStatusEvent,
+  OneClickError,
+  OneClickConfig,
+  SolverRelayConfig,
+} from './near-intents'
