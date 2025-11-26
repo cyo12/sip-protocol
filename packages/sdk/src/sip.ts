@@ -24,6 +24,8 @@ import {
 import { generateViewingKey, deriveViewingKey } from './privacy'
 import type { ChainId, HexString } from '@sip-protocol/types'
 import type { ProofProvider } from './proofs'
+import { ValidationError } from './errors'
+import { isValidChainId } from './validation'
 
 /**
  * SIP SDK configuration
@@ -82,6 +84,30 @@ export class SIP {
   private proofProvider?: ProofProvider
 
   constructor(config: SIPConfig) {
+    // Validate config
+    if (!config || typeof config !== 'object') {
+      throw new ValidationError('config must be an object')
+    }
+
+    if (config.network !== 'mainnet' && config.network !== 'testnet') {
+      throw new ValidationError(
+        `network must be 'mainnet' or 'testnet'`,
+        'config.network',
+        { received: config.network }
+      )
+    }
+
+    if (config.defaultPrivacy !== undefined) {
+      const validLevels = ['transparent', 'shielded', 'compliant']
+      if (!validLevels.includes(config.defaultPrivacy)) {
+        throw new ValidationError(
+          `defaultPrivacy must be one of: ${validLevels.join(', ')}`,
+          'config.defaultPrivacy',
+          { received: config.defaultPrivacy }
+        )
+      }
+    }
+
     this.config = {
       ...config,
       defaultPrivacy: config.defaultPrivacy ?? PrivacyLevel.SHIELDED,
@@ -140,8 +166,11 @@ export class SIP {
 
   /**
    * Generate and store stealth keys for this session
+   *
+   * @throws {ValidationError} If chain is invalid
    */
   generateStealthKeys(chain: ChainId, label?: string): StealthMetaAddress {
+    // Validation delegated to generateStealthMetaAddress
     const keys = generateStealthMetaAddress(chain, label)
     this.stealthKeys = keys
     return keys.metaAddress

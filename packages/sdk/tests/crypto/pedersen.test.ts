@@ -65,18 +65,18 @@ describe('Pedersen Commitments', () => {
     })
 
     it('should reject negative values', () => {
-      expect(() => commit(-1n)).toThrow('Value must be non-negative')
+      expect(() => commit(-1n)).toThrow('must be non-negative')
     })
 
     it('should reject values >= curve order', () => {
       // secp256k1 curve order
       const curveOrder = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n
-      expect(() => commit(curveOrder)).toThrow('Value must be less than curve order')
+      expect(() => commit(curveOrder)).toThrow('must be less than curve order')
     })
 
     it('should reject invalid blinding length', () => {
       const shortBlinding = new Uint8Array(16) // Should be 32
-      expect(() => commit(100n, shortBlinding)).toThrow('Blinding factor must be 32 bytes')
+      expect(() => commit(100n, shortBlinding)).toThrow('must be 32 bytes')
     })
   })
 

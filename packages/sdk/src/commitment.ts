@@ -24,6 +24,8 @@ import { secp256k1 } from '@noble/curves/secp256k1'
 import { sha256 } from '@noble/hashes/sha256'
 import { bytesToHex, hexToBytes, randomBytes } from '@noble/hashes/utils'
 import type { HexString } from '@sip-protocol/types'
+import { ValidationError } from './errors'
+import { isValidHex } from './validation'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,18 +155,27 @@ export function commit(
   value: bigint,
   blinding?: Uint8Array,
 ): PedersenCommitment {
+  // Validate value type
+  if (typeof value !== 'bigint') {
+    throw new ValidationError('must be a bigint', 'value', { received: typeof value })
+  }
+
   // Validate value is in valid range
   if (value < 0n) {
-    throw new Error('Value must be non-negative')
+    throw new ValidationError('must be non-negative', 'value')
   }
   if (value >= CURVE_ORDER) {
-    throw new Error('Value must be less than curve order')
+    throw new ValidationError(
+      'must be less than curve order',
+      'value',
+      { curveOrder: CURVE_ORDER.toString(16) }
+    )
   }
 
   // Generate or use provided blinding factor
   const r = blinding ?? randomBytes(32)
   if (r.length !== 32) {
-    throw new Error('Blinding factor must be 32 bytes')
+    throw new ValidationError('must be 32 bytes', 'blinding', { received: r.length })
   }
 
   // Ensure blinding is in valid range (mod n), and non-zero for valid scalar
@@ -278,13 +289,32 @@ export function commitZero(blinding: Uint8Array): PedersenCommitment {
  * @param c1 - First commitment point
  * @param c2 - Second commitment point
  * @returns Sum of commitments
+ * @throws {ValidationError} If commitments are invalid hex strings
  */
 export function addCommitments(
   c1: HexString,
   c2: HexString,
 ): CommitmentPoint {
-  const point1 = secp256k1.ProjectivePoint.fromHex(c1.slice(2))
-  const point2 = secp256k1.ProjectivePoint.fromHex(c2.slice(2))
+  // Validate inputs
+  if (!isValidHex(c1)) {
+    throw new ValidationError('must be a valid hex string', 'c1')
+  }
+  if (!isValidHex(c2)) {
+    throw new ValidationError('must be a valid hex string', 'c2')
+  }
+
+  let point1: typeof G
+  let point2: typeof G
+  try {
+    point1 = secp256k1.ProjectivePoint.fromHex(c1.slice(2))
+  } catch {
+    throw new ValidationError('must be a valid curve point', 'c1')
+  }
+  try {
+    point2 = secp256k1.ProjectivePoint.fromHex(c2.slice(2))
+  } catch {
+    throw new ValidationError('must be a valid curve point', 'c2')
+  }
 
   const sum = point1.add(point2)
 
@@ -301,13 +331,32 @@ export function addCommitments(
  * @param c1 - First commitment point
  * @param c2 - Second commitment point (to subtract)
  * @returns Difference of commitments
+ * @throws {ValidationError} If commitments are invalid
  */
 export function subtractCommitments(
   c1: HexString,
   c2: HexString,
 ): CommitmentPoint {
-  const point1 = secp256k1.ProjectivePoint.fromHex(c1.slice(2))
-  const point2 = secp256k1.ProjectivePoint.fromHex(c2.slice(2))
+  // Validate inputs
+  if (!isValidHex(c1)) {
+    throw new ValidationError('must be a valid hex string', 'c1')
+  }
+  if (!isValidHex(c2)) {
+    throw new ValidationError('must be a valid hex string', 'c2')
+  }
+
+  let point1: typeof G
+  let point2: typeof G
+  try {
+    point1 = secp256k1.ProjectivePoint.fromHex(c1.slice(2))
+  } catch {
+    throw new ValidationError('must be a valid curve point', 'c1')
+  }
+  try {
+    point2 = secp256k1.ProjectivePoint.fromHex(c2.slice(2))
+  } catch {
+    throw new ValidationError('must be a valid curve point', 'c2')
+  }
 
   const diff = point1.subtract(point2)
 

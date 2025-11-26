@@ -22,6 +22,13 @@ import type {
   ChainId,
   HexString,
 } from '@sip-protocol/types'
+import { ValidationError } from './errors'
+import {
+  isValidChainId,
+  isValidHex,
+  isValidCompressedPublicKey,
+  isValidPrivateKey,
+} from './validation'
 
 /**
  * Generate a new stealth meta-address keypair
@@ -29,6 +36,7 @@ import type {
  * @param chain - Target chain for the addresses
  * @param label - Optional human-readable label
  * @returns Stealth meta-address and private keys
+ * @throws {ValidationError} If chain is invalid
  */
 export function generateStealthMetaAddress(
   chain: ChainId,
@@ -38,6 +46,14 @@ export function generateStealthMetaAddress(
   spendingPrivateKey: HexString
   viewingPrivateKey: HexString
 } {
+  // Validate chain
+  if (!isValidChainId(chain)) {
+    throw new ValidationError(
+      `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base`,
+      'chain'
+    )
+  }
+
   // Generate random private keys
   const spendingPrivateKey = randomBytes(32)
   const viewingPrivateKey = randomBytes(32)
@@ -59,10 +75,47 @@ export function generateStealthMetaAddress(
 }
 
 /**
+ * Validate a StealthMetaAddress object
+ */
+function validateStealthMetaAddress(
+  metaAddress: StealthMetaAddress,
+  field: string = 'recipientMetaAddress'
+): void {
+  if (!metaAddress || typeof metaAddress !== 'object') {
+    throw new ValidationError('must be an object', field)
+  }
+
+  // Validate chain
+  if (!isValidChainId(metaAddress.chain)) {
+    throw new ValidationError(
+      `invalid chain '${metaAddress.chain}'`,
+      `${field}.chain`
+    )
+  }
+
+  // Validate spending key
+  if (!isValidCompressedPublicKey(metaAddress.spendingKey)) {
+    throw new ValidationError(
+      'spendingKey must be a valid compressed secp256k1 public key (33 bytes, starting with 02 or 03)',
+      `${field}.spendingKey`
+    )
+  }
+
+  // Validate viewing key
+  if (!isValidCompressedPublicKey(metaAddress.viewingKey)) {
+    throw new ValidationError(
+      'viewingKey must be a valid compressed secp256k1 public key (33 bytes, starting with 02 or 03)',
+      `${field}.viewingKey`
+    )
+  }
+}
+
+/**
  * Generate a one-time stealth address for a recipient
  *
  * @param recipientMetaAddress - Recipient's published stealth meta-address
  * @returns Stealth address data (address + ephemeral key for publication)
+ * @throws {ValidationError} If recipientMetaAddress is invalid
  */
 export function generateStealthAddress(
   recipientMetaAddress: StealthMetaAddress,
@@ -70,6 +123,9 @@ export function generateStealthAddress(
   stealthAddress: StealthAddress
   sharedSecret: HexString
 } {
+  // Validate input
+  validateStealthMetaAddress(recipientMetaAddress)
+
   // Generate ephemeral keypair
   const ephemeralPrivateKey = randomBytes(32)
   const ephemeralPublicKey = secp256k1.getPublicKey(ephemeralPrivateKey, true)
@@ -111,18 +167,76 @@ export function generateStealthAddress(
 }
 
 /**
+ * Validate a StealthAddress object
+ */
+function validateStealthAddress(
+  stealthAddress: StealthAddress,
+  field: string = 'stealthAddress'
+): void {
+  if (!stealthAddress || typeof stealthAddress !== 'object') {
+    throw new ValidationError('must be an object', field)
+  }
+
+  // Validate address (compressed public key)
+  if (!isValidCompressedPublicKey(stealthAddress.address)) {
+    throw new ValidationError(
+      'address must be a valid compressed secp256k1 public key',
+      `${field}.address`
+    )
+  }
+
+  // Validate ephemeral public key
+  if (!isValidCompressedPublicKey(stealthAddress.ephemeralPublicKey)) {
+    throw new ValidationError(
+      'ephemeralPublicKey must be a valid compressed secp256k1 public key',
+      `${field}.ephemeralPublicKey`
+    )
+  }
+
+  // Validate view tag (0-255)
+  if (typeof stealthAddress.viewTag !== 'number' ||
+      !Number.isInteger(stealthAddress.viewTag) ||
+      stealthAddress.viewTag < 0 ||
+      stealthAddress.viewTag > 255) {
+    throw new ValidationError(
+      'viewTag must be an integer between 0 and 255',
+      `${field}.viewTag`
+    )
+  }
+}
+
+/**
  * Derive the private key for a stealth address (for recipient to claim funds)
  *
  * @param stealthAddress - The stealth address to recover
  * @param spendingPrivateKey - Recipient's spending private key
  * @param viewingPrivateKey - Recipient's viewing private key
  * @returns Recovery data including derived private key
+ * @throws {ValidationError} If any input is invalid
  */
 export function deriveStealthPrivateKey(
   stealthAddress: StealthAddress,
   spendingPrivateKey: HexString,
   viewingPrivateKey: HexString,
 ): StealthAddressRecovery {
+  // Validate stealth address
+  validateStealthAddress(stealthAddress)
+
+  // Validate private keys
+  if (!isValidPrivateKey(spendingPrivateKey)) {
+    throw new ValidationError(
+      'must be a valid 32-byte hex string',
+      'spendingPrivateKey'
+    )
+  }
+
+  if (!isValidPrivateKey(viewingPrivateKey)) {
+    throw new ValidationError(
+      'must be a valid 32-byte hex string',
+      'viewingPrivateKey'
+    )
+  }
+
   // Parse keys
   const spendingPrivBytes = hexToBytes(spendingPrivateKey.slice(2))
   const viewingPrivBytes = hexToBytes(viewingPrivateKey.slice(2))
@@ -161,12 +275,31 @@ export function deriveStealthPrivateKey(
  * @param spendingPrivateKey - Recipient's spending private key
  * @param viewingPrivateKey - Recipient's viewing private key
  * @returns true if this address belongs to the recipient
+ * @throws {ValidationError} If any input is invalid
  */
 export function checkStealthAddress(
   stealthAddress: StealthAddress,
   spendingPrivateKey: HexString,
   viewingPrivateKey: HexString,
 ): boolean {
+  // Validate stealth address
+  validateStealthAddress(stealthAddress)
+
+  // Validate private keys
+  if (!isValidPrivateKey(spendingPrivateKey)) {
+    throw new ValidationError(
+      'must be a valid 32-byte hex string',
+      'spendingPrivateKey'
+    )
+  }
+
+  if (!isValidPrivateKey(viewingPrivateKey)) {
+    throw new ValidationError(
+      'must be a valid 32-byte hex string',
+      'viewingPrivateKey'
+    )
+  }
+
   // Parse keys
   const spendingPrivBytes = hexToBytes(spendingPrivateKey.slice(2))
   const viewingPrivBytes = hexToBytes(viewingPrivateKey.slice(2))
@@ -211,17 +344,53 @@ export function encodeStealthMetaAddress(metaAddress: StealthMetaAddress): strin
 
 /**
  * Decode a stealth meta-address from a string
+ *
+ * @param encoded - Encoded stealth meta-address (format: sip:<chain>:<spendingKey>:<viewingKey>)
+ * @returns Decoded StealthMetaAddress
+ * @throws {ValidationError} If format is invalid or keys are malformed
  */
 export function decodeStealthMetaAddress(encoded: string): StealthMetaAddress {
+  if (typeof encoded !== 'string') {
+    throw new ValidationError('must be a string', 'encoded')
+  }
+
   const parts = encoded.split(':')
   if (parts.length < 4 || parts[0] !== 'sip') {
-    throw new Error('Invalid stealth meta-address format')
+    throw new ValidationError(
+      'invalid format, expected: sip:<chain>:<spendingKey>:<viewingKey>',
+      'encoded'
+    )
+  }
+
+  const [, chain, spendingKey, viewingKey] = parts
+
+  // Validate chain
+  if (!isValidChainId(chain)) {
+    throw new ValidationError(
+      `invalid chain '${chain}'`,
+      'encoded.chain'
+    )
+  }
+
+  // Validate keys
+  if (!isValidCompressedPublicKey(spendingKey)) {
+    throw new ValidationError(
+      'spendingKey must be a valid compressed secp256k1 public key',
+      'encoded.spendingKey'
+    )
+  }
+
+  if (!isValidCompressedPublicKey(viewingKey)) {
+    throw new ValidationError(
+      'viewingKey must be a valid compressed secp256k1 public key',
+      'encoded.viewingKey'
+    )
   }
 
   return {
-    chain: parts[1] as ChainId,
-    spendingKey: parts[2] as HexString,
-    viewingKey: parts[3] as HexString,
+    chain: chain as ChainId,
+    spendingKey: spendingKey as HexString,
+    viewingKey: viewingKey as HexString,
   }
 }
 

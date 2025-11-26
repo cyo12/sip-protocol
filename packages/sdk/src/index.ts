@@ -25,6 +25,7 @@ export {
   SIPError,
   ProofNotImplementedError,
   EncryptionNotImplementedError,
+  ValidationError,
 } from './errors'
 
 // Main client
@@ -63,9 +64,9 @@ export {
   deriveViewingKey,
   encryptForViewing,
   decryptWithViewing,
-  isValidPrivacyLevel,
   getPrivacyDescription,
 } from './privacy'
+// Note: isValidPrivacyLevel is exported from validation.ts
 export type { PrivacyConfig, TransactionData } from './privacy'
 
 // Crypto utilities (legacy - use commitment module for new code)
@@ -95,6 +96,27 @@ export type {
   PedersenCommitment,
   CommitmentPoint,
 } from './commitment'
+
+// Validation utilities
+export {
+  isValidChainId,
+  isValidPrivacyLevel,
+  isValidHex,
+  isValidHexLength,
+  isValidAmount,
+  isNonNegativeAmount,
+  isValidSlippage,
+  isValidStealthMetaAddress,
+  isValidCompressedPublicKey,
+  isValidPrivateKey,
+  isValidScalar,
+  validateCreateIntentParams,
+  validateAsset,
+  validateIntentInput,
+  validateIntentOutput,
+  validateViewingKey,
+  validateScalar,
+} from './validation'
 
 // Proof providers
 export {

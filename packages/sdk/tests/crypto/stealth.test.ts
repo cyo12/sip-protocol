@@ -277,10 +277,10 @@ describe('Stealth Addresses', () => {
 
     it('should reject invalid encoded format', () => {
       expect(() => decodeStealthMetaAddress('invalid')).toThrow(
-        'Invalid stealth meta-address format'
+        'invalid format'
       )
       expect(() => decodeStealthMetaAddress('foo:bar:baz')).toThrow(
-        'Invalid stealth meta-address format'
+        'invalid format'
       )
     })
   })

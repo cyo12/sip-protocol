@@ -27,6 +27,15 @@ import {
 import { hexToBytes } from '@noble/hashes/utils'
 import { getPrivacyConfig, generateViewingKey } from './privacy'
 import type { ProofProvider } from './proofs'
+import { ValidationError } from './errors'
+import {
+  validateCreateIntentParams,
+  isValidChainId,
+  isValidAmount,
+  isValidSlippage,
+  isValidPrivacyLevel,
+  isValidStealthMetaAddress,
+} from './validation'
 
 /**
  * Options for creating a shielded intent
@@ -51,6 +60,8 @@ export class IntentBuilder {
 
   /**
    * Set the input for the intent
+   *
+   * @throws {ValidationError} If chain or amount is invalid
    */
   input(
     chain: string,
@@ -58,6 +69,25 @@ export class IntentBuilder {
     amount: number | bigint,
     sourceAddress?: string,
   ): this {
+    // Validate chain
+    if (!isValidChainId(chain)) {
+      throw new ValidationError(
+        `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base`,
+        'input.chain'
+      )
+    }
+
+    // Validate token
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      throw new ValidationError('token must be a non-empty string', 'input.token')
+    }
+
+    // Validate amount
+    const amountBigInt = typeof amount === 'number' ? BigInt(Math.floor(amount * 1e18)) : amount
+    if (!isValidAmount(amountBigInt)) {
+      throw new ValidationError('amount must be positive', 'input.amount')
+    }
+
     this.params.input = {
       asset: {
         chain: chain as any,
@@ -65,7 +95,7 @@ export class IntentBuilder {
         address: null,
         decimals: 18, // Default, should be looked up
       },
-      amount: typeof amount === 'number' ? BigInt(Math.floor(amount * 1e18)) : amount,
+      amount: amountBigInt,
       sourceAddress,
     }
     this.senderAddress = sourceAddress
@@ -74,8 +104,34 @@ export class IntentBuilder {
 
   /**
    * Set the output for the intent
+   *
+   * @throws {ValidationError} If chain is invalid
    */
   output(chain: string, token: string, minAmount?: number | bigint): this {
+    // Validate chain
+    if (!isValidChainId(chain)) {
+      throw new ValidationError(
+        `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base`,
+        'output.chain'
+      )
+    }
+
+    // Validate token
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      throw new ValidationError('token must be a non-empty string', 'output.token')
+    }
+
+    const minAmountBigInt = minAmount
+      ? typeof minAmount === 'number'
+        ? BigInt(Math.floor(minAmount * 1e18))
+        : minAmount
+      : 0n
+
+    // minAmount can be 0 (no minimum), but not negative
+    if (minAmountBigInt < 0n) {
+      throw new ValidationError('minAmount cannot be negative', 'output.minAmount')
+    }
+
     this.params.output = {
       asset: {
         chain: chain as any,
@@ -83,11 +139,7 @@ export class IntentBuilder {
         address: null,
         decimals: 18,
       },
-      minAmount: minAmount
-        ? typeof minAmount === 'number'
-          ? BigInt(Math.floor(minAmount * 1e18))
-          : minAmount
-        : 0n,
+      minAmount: minAmountBigInt,
       maxSlippage: 0.01, // 1% default
     }
     return this
@@ -95,34 +147,70 @@ export class IntentBuilder {
 
   /**
    * Set the privacy level
+   *
+   * @throws {ValidationError} If privacy level is invalid
    */
   privacy(level: PrivacyLevel): this {
+    if (!isValidPrivacyLevel(level)) {
+      throw new ValidationError(
+        `invalid privacy level '${level}', must be one of: transparent, shielded, compliant`,
+        'privacy'
+      )
+    }
     this.params.privacy = level
     return this
   }
 
   /**
    * Set the recipient's stealth meta-address
+   *
+   * @throws {ValidationError} If stealth meta-address format is invalid
    */
   recipient(metaAddress: string): this {
+    if (metaAddress && !isValidStealthMetaAddress(metaAddress)) {
+      throw new ValidationError(
+        'invalid stealth meta-address format, expected: st:<chain>:0x<132 hex chars>',
+        'recipientMetaAddress'
+      )
+    }
     this.params.recipientMetaAddress = metaAddress
     return this
   }
 
   /**
    * Set slippage tolerance
+   *
+   * @param percent - Slippage percentage (e.g., 1 for 1%)
+   * @throws {ValidationError} If slippage is out of range
    */
   slippage(percent: number): this {
+    const slippageDecimal = percent / 100
+    if (!isValidSlippage(slippageDecimal)) {
+      throw new ValidationError(
+        'slippage must be a non-negative number less than 100%',
+        'maxSlippage',
+        { received: percent, asDecimal: slippageDecimal }
+      )
+    }
     if (this.params.output) {
-      this.params.output.maxSlippage = percent / 100
+      this.params.output.maxSlippage = slippageDecimal
     }
     return this
   }
 
   /**
    * Set time-to-live in seconds
+   *
+   * @throws {ValidationError} If TTL is not a positive integer
    */
   ttl(seconds: number): this {
+    if (typeof seconds !== 'number' || !Number.isInteger(seconds) || seconds <= 0) {
+      throw new ValidationError(
+        'ttl must be a positive integer (seconds)',
+        'ttl',
+        { received: seconds }
+      )
+    }
     this.params.ttl = seconds
     return this
   }
@@ -187,13 +275,11 @@ export async function createShieldedIntent(
   params: CreateIntentParams,
   options?: CreateIntentOptions,
 ): Promise<ShieldedIntent> {
+  // Comprehensive input validation
+  validateCreateIntentParams(params)
+
   const { input, output, privacy, recipientMetaAddress, viewingKey, ttl = 300 } = params
   const { senderAddress, proofProvider } = options ?? {}
-
-  // Validate required fields
-  if (!input || !output || !privacy) {
-    throw new Error('Missing required parameters: input, output, privacy')
-  }
 
   // Get privacy configuration
   const privacyConfig = getPrivacyConfig(

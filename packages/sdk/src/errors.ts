@@ -76,3 +76,36 @@ export class EncryptionNotImplementedError extends SIPError {
     this.specReference = specReference
   }
 }
+
+/**
+ * Error thrown when input validation fails.
+ *
+ * Provides detailed information about what validation failed
+ * and optionally which field caused the error.
+ *
+ * @example
+ * ```typescript
+ * throw new ValidationError('Amount must be positive', 'input.amount')
+ * ```
+ */
+export class ValidationError extends SIPError {
+  /** The field that failed validation (if applicable) */
+  readonly field?: string
+
+  /** Additional context about the validation failure */
+  readonly context?: Record<string, unknown>
+
+  constructor(
+    message: string,
+    field?: string,
+    context?: Record<string, unknown>,
+  ) {
+    const fullMessage = field
+      ? `Validation failed for '${field}': ${message}`
+      : `Validation failed: ${message}`
+    super(fullMessage)
+    this.name = 'ValidationError'
+    this.field = field
+    this.context = context
+  }
+}
