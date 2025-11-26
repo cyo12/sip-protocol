@@ -1,8 +1,14 @@
 /**
  * Privacy level handling for SIP Protocol
  *
- * IMPORTANT: Encryption functions require real ChaCha20-Poly1305 implementation.
- * Functions will throw EncryptionNotImplementedError until implemented.
+ * Provides authenticated encryption using XChaCha20-Poly1305 for viewing key
+ * selective disclosure. This allows transaction details to be encrypted and
+ * later revealed to auditors holding the viewing key.
+ *
+ * ## Security Properties
+ * - **Confidentiality**: Only viewing key holders can decrypt
+ * - **Integrity**: Authentication tag prevents tampering
+ * - **Nonce-misuse resistance**: XChaCha20 uses 24-byte nonces
  */
 
 import type {
@@ -13,8 +19,9 @@ import type {
   Hash,
 } from '@sip-protocol/types'
 import { sha256 } from '@noble/hashes/sha256'
-import { bytesToHex, randomBytes } from '@noble/hashes/utils'
-import { EncryptionNotImplementedError } from './errors'
+import { hkdf } from '@noble/hashes/hkdf'
+import { bytesToHex, hexToBytes, randomBytes, utf8ToBytes } from '@noble/hashes/utils'
+import { xchacha20poly1305 } from '@noble/ciphers/chacha.js'
 
 /**
  * Privacy configuration for an intent
@@ -103,50 +110,186 @@ export function deriveViewingKey(
   }
 }
 
+// ─── Encryption Constants ─────────────────────────────────────────────────────
+
+/**
+ * Domain separation for encryption key derivation
+ */
+const ENCRYPTION_DOMAIN = 'SIP-VIEWING-KEY-ENCRYPTION-V1'
+
+/**
+ * XChaCha20-Poly1305 nonce size (24 bytes)
+ */
+const NONCE_SIZE = 24
+
+// ─── Key Derivation ───────────────────────────────────────────────────────────
+
+/**
+ * Derive an encryption key from a viewing key using HKDF
+ *
+ * Uses HKDF-SHA256 with domain separation for security.
+ *
+ * @param viewingKey - The viewing key to derive from
+ * @returns 32-byte encryption key
+ */
+function deriveEncryptionKey(viewingKey: ViewingKey): Uint8Array {
+  // Extract the raw key bytes (remove 0x prefix)
+  const keyHex = viewingKey.key.startsWith('0x')
+    ? viewingKey.key.slice(2)
+    : viewingKey.key
+  const keyBytes = hexToBytes(keyHex)
+
+  // Use HKDF to derive a proper encryption key
+  // HKDF(SHA256, ikm=viewingKey, salt=domain, info=path, length=32)
+  const salt = utf8ToBytes(ENCRYPTION_DOMAIN)
+  const info = utf8ToBytes(viewingKey.path)
+
+  return hkdf(sha256, keyBytes, salt, info, 32)
+}
+
+// ─── Transaction Data Type ────────────────────────────────────────────────────
+
+/**
+ * Transaction data that can be encrypted for viewing
+ */
+export interface TransactionData {
+  sender: string
+  recipient: string
+  amount: string
+  timestamp: number
+}
+
+// ─── Encryption Functions ─────────────────────────────────────────────────────
+
 /**
  * Encrypt transaction data for viewing key holders
  *
- * Uses ChaCha20-Poly1305 authenticated encryption.
+ * Uses XChaCha20-Poly1305 authenticated encryption with:
+ * - 24-byte random nonce (nonce-misuse resistant)
+ * - HKDF-derived encryption key
+ * - 16-byte authentication tag (included in ciphertext)
  *
- * @throws {EncryptionNotImplementedError} Real ChaCha20-Poly1305 implementation required
- * @see docs/specs/VIEWING-KEY.md for specification
+ * @param data - Transaction data to encrypt
+ * @param viewingKey - Viewing key for encryption
+ * @returns Encrypted transaction with nonce and key hash
+ *
+ * @example
+ * ```typescript
+ * const encrypted = encryptForViewing(
+ *   { sender: '0x...', recipient: '0x...', amount: '100', timestamp: 123 },
+ *   viewingKey
+ * )
+ * // encrypted.ciphertext contains the encrypted data
+ * // encrypted.nonce is needed for decryption
+ * // encrypted.viewingKeyHash identifies which key can decrypt
+ * ```
  */
 export function encryptForViewing(
-  _data: {
-    sender: string
-    recipient: string
-    amount: string
-    timestamp: number
-  },
-  _viewingKey: ViewingKey,
+  data: TransactionData,
+  viewingKey: ViewingKey,
 ): EncryptedTransaction {
-  throw new EncryptionNotImplementedError(
-    'encrypt',
-    'docs/specs/VIEWING-KEY.md',
-  )
+  // Derive encryption key from viewing key
+  const key = deriveEncryptionKey(viewingKey)
+
+  // Generate random nonce (24 bytes for XChaCha20)
+  const nonce = randomBytes(NONCE_SIZE)
+
+  // Serialize data to JSON
+  const plaintext = utf8ToBytes(JSON.stringify(data))
+
+  // Encrypt with XChaCha20-Poly1305
+  const cipher = xchacha20poly1305(key, nonce)
+  const ciphertext = cipher.encrypt(plaintext)
+
+  return {
+    ciphertext: `0x${bytesToHex(ciphertext)}` as HexString,
+    nonce: `0x${bytesToHex(nonce)}` as HexString,
+    viewingKeyHash: viewingKey.hash,
+  }
 }
 
 /**
  * Decrypt transaction data with viewing key
  *
- * Uses ChaCha20-Poly1305 authenticated decryption.
+ * Performs authenticated decryption using XChaCha20-Poly1305.
+ * The authentication tag is verified before returning data.
  *
- * @throws {EncryptionNotImplementedError} Real ChaCha20-Poly1305 implementation required
- * @see docs/specs/VIEWING-KEY.md for specification
+ * @param encrypted - Encrypted transaction data
+ * @param viewingKey - Viewing key for decryption
+ * @returns Decrypted transaction data
+ * @throws {Error} If decryption fails (wrong key, tampered data, etc.)
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const data = decryptWithViewing(encrypted, viewingKey)
+ *   console.log(`Amount: ${data.amount}`)
+ * } catch (e) {
+ *   console.error('Decryption failed - wrong key or tampered data')
+ * }
+ * ```
  */
 export function decryptWithViewing(
-  _encrypted: EncryptedTransaction,
-  _viewingKey: ViewingKey,
-): {
-  sender: string
-  recipient: string
-  amount: string
-  timestamp: number
-} {
-  throw new EncryptionNotImplementedError(
-    'decrypt',
-    'docs/specs/VIEWING-KEY.md',
-  )
+  encrypted: EncryptedTransaction,
+  viewingKey: ViewingKey,
+): TransactionData {
+  // Verify viewing key hash matches (optional but helpful error message)
+  if (encrypted.viewingKeyHash !== viewingKey.hash) {
+    throw new Error(
+      'Viewing key hash mismatch - this key cannot decrypt this transaction'
+    )
+  }
+
+  // Derive encryption key from viewing key
+  const key = deriveEncryptionKey(viewingKey)
+
+  // Parse nonce and ciphertext
+  const nonceHex = encrypted.nonce.startsWith('0x')
+    ? encrypted.nonce.slice(2)
+    : encrypted.nonce
+  const nonce = hexToBytes(nonceHex)
+
+  const ciphertextHex = encrypted.ciphertext.startsWith('0x')
+    ? encrypted.ciphertext.slice(2)
+    : encrypted.ciphertext
+  const ciphertext = hexToBytes(ciphertextHex)
+
+  // Decrypt with XChaCha20-Poly1305
+  // This will throw if authentication fails (wrong key or tampered data)
+  const cipher = xchacha20poly1305(key, nonce)
+  let plaintext: Uint8Array
+
+  try {
+    plaintext = cipher.decrypt(ciphertext)
+  } catch {
+    throw new Error(
+      'Decryption failed - authentication tag verification failed. ' +
+      'Either the viewing key is incorrect or the data has been tampered with.'
+    )
+  }
+
+  // Parse JSON
+  const textDecoder = new TextDecoder()
+  const jsonString = textDecoder.decode(plaintext)
+
+  try {
+    const data = JSON.parse(jsonString) as TransactionData
+    // Validate required fields
+    if (
+      typeof data.sender !== 'string' ||
+      typeof data.recipient !== 'string' ||
+      typeof data.amount !== 'string' ||
+      typeof data.timestamp !== 'number'
+    ) {
+      throw new Error('Invalid transaction data format')
+    }
+    return data
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      throw new Error('Decryption succeeded but data is malformed JSON')
+    }
+    throw e
+  }
 }
 
 /**

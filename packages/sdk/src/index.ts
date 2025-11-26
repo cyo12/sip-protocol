@@ -66,7 +66,7 @@ export {
   isValidPrivacyLevel,
   getPrivacyDescription,
 } from './privacy'
-export type { PrivacyConfig } from './privacy'
+export type { PrivacyConfig, TransactionData } from './privacy'
 
 // Crypto utilities (legacy - use commitment module for new code)
 // For ZK proofs, use ProofProvider from './proofs'
