@@ -232,8 +232,23 @@ export type {
 } from '@sip-protocol/types'
 
 // Zcash
-export { ZcashRPCClient, ZcashRPCError, createZcashClient } from './zcash'
+export {
+  ZcashRPCClient,
+  ZcashRPCError,
+  createZcashClient,
+  ZcashShieldedService,
+  createZcashShieldedService,
+} from './zcash'
 export { ZcashErrorCode } from '@sip-protocol/types'
+
+export type {
+  ZcashShieldedServiceConfig,
+  ShieldedSendParams,
+  ShieldedSendResult,
+  ReceivedNote,
+  ShieldedBalance,
+  ExportedViewingKey,
+} from './zcash'
 
 export type {
   ZcashConfig,

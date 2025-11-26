@@ -4,7 +4,23 @@
  * Provides Zcash RPC client and shielded transaction support.
  */
 
+// RPC Client
 export { ZcashRPCClient, ZcashRPCError, createZcashClient } from './rpc-client'
+
+// Shielded Service
+export {
+  ZcashShieldedService,
+  createZcashShieldedService,
+} from './shielded-service'
+
+export type {
+  ZcashShieldedServiceConfig,
+  ShieldedSendParams,
+  ShieldedSendResult,
+  ReceivedNote,
+  ShieldedBalance,
+  ExportedViewingKey,
+} from './shielded-service'
 
 // Re-export types from types package
 export type {
