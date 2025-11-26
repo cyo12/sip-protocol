@@ -1,0 +1,46 @@
+{
+  "name": "@sip-protocol/sdk",
+  "version": "0.1.0",
+  "description": "Core SDK for Shielded Intents Protocol",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@sip-protocol/types": "workspace:*",
+    "@noble/curves": "^1.3.0",
+    "@noble/hashes": "^1.3.3"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.1.0"
+  },
+  "keywords": [
+    "sip",
+    "privacy",
+    "intents",
+    "cross-chain",
+    "stealth-addresses",
+    "zcash"
+  ],
+  "license": "MIT"
+}
