@@ -84,3 +84,4 @@ pnpm-debug.log*
 .cache/
 tmp/
 temp/
+packages/sdk/benchmarks/results.json

@@ -23,7 +23,9 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "bench": "vitest bench --config vitest.bench.config.ts",
+    "bench:json": "vitest bench --config vitest.bench.config.ts --outputJson benchmarks/results.json"
   },
   "dependencies": {
     "@noble/ciphers": "^2.0.1",
