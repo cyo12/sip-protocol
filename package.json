@@ -15,12 +15,16 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "docs": "typedoc",
+    "docs:watch": "typedoc --watch"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "prettier": "^3.1.0",
     "turbo": "^2.0.0",
+    "typedoc": "^0.28.14",
+    "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.3.0"
   },
   "packageManager": "pnpm@8.15.0",
