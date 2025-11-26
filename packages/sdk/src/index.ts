@@ -287,6 +287,17 @@ export {
   createWalletFactory,
   isPrivateWalletAdapter,
   WalletErrorCode,
+  // Solana
+  SolanaWalletAdapter,
+  createSolanaAdapter,
+  MockSolanaAdapter,
+  createMockSolanaAdapter,
+  createMockSolanaProvider,
+  createMockSolanaConnection,
+  getSolanaProvider,
+  detectSolanaWallets,
+  solanaPublicKeyToHex,
+  base58ToHex,
 } from './wallet'
 
 export type {
@@ -310,4 +321,17 @@ export type {
   WalletInfo,
   WalletAdapterFactory,
   WalletRegistryEntry,
+  // Solana types
+  SolanaPublicKey,
+  SolanaTransaction,
+  SolanaVersionedTransaction,
+  SolanaWalletProvider,
+  SolanaWalletName,
+  SolanaCluster,
+  SolanaAdapterConfig,
+  SolanaConnection,
+  SolanaSendOptions,
+  SolanaUnsignedTransaction,
+  SolanaSignature,
+  MockSolanaAdapterConfig,
 } from './wallet'

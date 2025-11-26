@@ -18,6 +18,35 @@ export {
   isPrivateWalletAdapter,
 } from './registry'
 
+// Solana adapter
+export {
+  SolanaWalletAdapter,
+  createSolanaAdapter,
+  MockSolanaAdapter,
+  createMockSolanaAdapter,
+  createMockSolanaProvider,
+  createMockSolanaConnection,
+  getSolanaProvider,
+  detectSolanaWallets,
+  solanaPublicKeyToHex,
+  base58ToHex,
+} from './solana'
+
+export type {
+  SolanaPublicKey,
+  SolanaTransaction,
+  SolanaVersionedTransaction,
+  SolanaWalletProvider,
+  SolanaWalletName,
+  SolanaCluster,
+  SolanaAdapterConfig,
+  SolanaConnection,
+  SolanaSendOptions,
+  SolanaUnsignedTransaction,
+  SolanaSignature,
+  MockSolanaAdapterConfig,
+} from './solana'
+
 // Re-export types from types package for convenience
 export type {
   // Core types
