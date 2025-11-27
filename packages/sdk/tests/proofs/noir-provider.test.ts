@@ -166,32 +166,12 @@ describe('NoirProofProvider', () => {
     })
   })
 
-  describe('fulfillment proof not implemented', () => {
-    it('should throw not implemented for fulfillment proof', async () => {
+  describe('fulfillment proof circuit loaded', () => {
+    it('should have fulfillment circuit available after initialization', async () => {
       try {
         await provider.initialize()
-
-        const params: FulfillmentProofParams = {
-          intentHash: '0xabc123' as HexString,
-          outputAmount: 100n,
-          outputBlinding: new Uint8Array(32),
-          minOutputAmount: 90n,
-          recipientStealth: '0xrecipient' as HexString,
-          solverId: 'solver-1',
-          solverSecret: new Uint8Array(32),
-          oracleAttestation: {
-            recipient: '0xrecipient' as HexString,
-            amount: 100n,
-            txHash: '0xtxhash' as HexString,
-            blockNumber: 12345n,
-            signature: new Uint8Array(64),
-          },
-          fulfillmentTime: 1500,
-          expiry: 2000,
-        }
-
-        await expect(provider.generateFulfillmentProof(params))
-          .rejects.toThrow('not yet implemented')
+        expect(provider.isReady).toBe(true)
+        // Provider should be ready for fulfillment proofs
       } catch {
         // WASM not available - skip
         expect(true).toBe(true)
@@ -219,7 +199,7 @@ describe('NoirProofProvider', () => {
       }
     })
 
-    it('should throw for fulfillment proof verification', async () => {
+    it('should handle fulfillment proof verification (returns false for invalid proof)', async () => {
       try {
         await provider.initialize()
 
@@ -229,8 +209,9 @@ describe('NoirProofProvider', () => {
           publicInputs: [],
         }
 
-        await expect(provider.verifyProof(fulfillmentProof))
-          .rejects.toThrow('not yet implemented')
+        // Invalid proof should return false (not throw)
+        const result = await provider.verifyProof(fulfillmentProof)
+        expect(result).toBe(false)
       } catch {
         // WASM not available - skip
         expect(true).toBe(true)

@@ -33,6 +33,8 @@ import { UltraHonkBackend } from '@aztec/bb.js'
 import fundingCircuitArtifact from './circuits/funding_proof.json'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import validityCircuitArtifact from './circuits/validity_proof.json'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import fulfillmentCircuitArtifact from './circuits/fulfillment_proof.json'
 
 /**
  * Noir Proof Provider Configuration
@@ -88,6 +90,8 @@ export class NoirProofProvider implements ProofProvider {
   private fundingBackend: UltraHonkBackend | null = null
   private validityNoir: Noir | null = null
   private validityBackend: UltraHonkBackend | null = null
+  private fulfillmentNoir: Noir | null = null
+  private fulfillmentBackend: UltraHonkBackend | null = null
 
   constructor(config: NoirProviderConfig = {}) {
     this.config = {
@@ -144,6 +148,19 @@ export class NoirProofProvider implements ProofProvider {
 
       if (this.config.verbose) {
         console.log('[NoirProofProvider] Validity circuit loaded')
+      }
+
+      // Initialize Fulfillment Proof circuit
+      const fulfillmentCircuit = fulfillmentCircuitArtifact as unknown as CompiledCircuit
+
+      // Create backend for fulfillment proof generation
+      this.fulfillmentBackend = new UltraHonkBackend(fulfillmentCircuit.bytecode)
+
+      // Create Noir instance for fulfillment witness generation
+      this.fulfillmentNoir = new Noir(fulfillmentCircuit)
+
+      if (this.config.verbose) {
+        console.log('[NoirProofProvider] Fulfillment circuit loaded')
       }
 
       this._isReady = true
@@ -448,16 +465,197 @@ export class NoirProofProvider implements ProofProvider {
   /**
    * Generate a Fulfillment Proof using Noir circuits
    *
+   * Proves: Solver correctly executed the intent and delivered the required
+   * output to the recipient, without revealing execution path or liquidity sources.
+   *
    * @see docs/specs/FULFILLMENT-PROOF.md
    */
-  async generateFulfillmentProof(_params: FulfillmentProofParams): Promise<ProofResult> {
+  async generateFulfillmentProof(params: FulfillmentProofParams): Promise<ProofResult> {
     this.ensureReady()
 
-    // TODO: Implement when fulfillment circuit is ready (#65)
-    throw new ProofGenerationError(
-      'fulfillment',
-      'Noir circuit not yet implemented. See #65.',
-    )
+    if (!this.fulfillmentNoir || !this.fulfillmentBackend) {
+      throw new ProofGenerationError(
+        'fulfillment',
+        'Fulfillment circuit not initialized'
+      )
+    }
+
+    try {
+      if (this.config.verbose) {
+        console.log('[NoirProofProvider] Generating fulfillment proof...')
+      }
+
+      // Convert intent hash to field
+      const intentHashField = this.hexToField(params.intentHash)
+
+      // Convert recipient stealth to field
+      const recipientStealthField = this.hexToField(params.recipientStealth)
+
+      // Compute output commitment
+      const { commitmentX, commitmentY } = await this.computeOutputCommitment(
+        params.outputAmount,
+        params.outputBlinding
+      )
+
+      // Compute solver ID from secret
+      const solverSecretField = this.bytesToField(params.solverSecret)
+      const solverId = await this.computeSolverId(solverSecretField)
+
+      // Convert output blinding to field
+      const outputBlindingField = this.bytesToField(params.outputBlinding)
+
+      // Oracle attestation data
+      const attestation = params.oracleAttestation
+      const attestationRecipientField = this.hexToField(attestation.recipient)
+      const attestationTxHashField = this.hexToField(attestation.txHash)
+
+      // Oracle signature (64 bytes)
+      const oracleSignature = Array.from(attestation.signature)
+
+      // Compute oracle message hash
+      const oracleMessageHash = await this.computeOracleMessageHash(
+        attestation.recipient,
+        attestation.amount,
+        attestation.txHash,
+        attestation.blockNumber
+      )
+
+      // For now, use placeholder oracle public key (would come from trusted registry)
+      const oraclePubKeyX = new Array(32).fill(0)
+      const oraclePubKeyY = new Array(32).fill(0)
+
+      // Prepare witness inputs for the circuit
+      const witnessInputs = {
+        // Public inputs
+        intent_hash: intentHashField,
+        output_commitment_x: commitmentX,
+        output_commitment_y: commitmentY,
+        recipient_stealth: recipientStealthField,
+        min_output_amount: params.minOutputAmount.toString(),
+        solver_id: solverId,
+        fulfillment_time: params.fulfillmentTime.toString(),
+        expiry: params.expiry.toString(),
+        // Private inputs
+        output_amount: params.outputAmount.toString(),
+        output_blinding: outputBlindingField,
+        solver_secret: solverSecretField,
+        attestation_recipient: attestationRecipientField,
+        attestation_amount: attestation.amount.toString(),
+        attestation_tx_hash: attestationTxHashField,
+        attestation_block: attestation.blockNumber.toString(),
+        oracle_signature: oracleSignature,
+        oracle_message_hash: oracleMessageHash,
+        oracle_pub_key_x: oraclePubKeyX,
+        oracle_pub_key_y: oraclePubKeyY,
+      }
+
+      if (this.config.verbose) {
+        console.log('[NoirProofProvider] Fulfillment witness inputs:', {
+          intent_hash: intentHashField,
+          output_commitment_x: commitmentX,
+          output_commitment_y: commitmentY,
+          recipient_stealth: recipientStealthField,
+          min_output_amount: params.minOutputAmount.toString(),
+          solver_id: solverId,
+          fulfillment_time: params.fulfillmentTime,
+          expiry: params.expiry,
+          output_amount: '[PRIVATE]',
+          output_blinding: '[PRIVATE]',
+          solver_secret: '[PRIVATE]',
+          oracle_attestation: '[PRIVATE]',
+        })
+      }
+
+      // Execute circuit to generate witness
+      const { witness } = await this.fulfillmentNoir.execute(witnessInputs)
+
+      if (this.config.verbose) {
+        console.log('[NoirProofProvider] Fulfillment witness generated, creating proof...')
+      }
+
+      // Generate proof using backend
+      const proofData = await this.fulfillmentBackend.generateProof(witness)
+
+      if (this.config.verbose) {
+        console.log('[NoirProofProvider] Fulfillment proof generated successfully')
+      }
+
+      // Extract public inputs from the proof
+      const publicInputs: `0x${string}`[] = [
+        `0x${intentHashField}`,
+        `0x${commitmentX}`,
+        `0x${commitmentY}`,
+        `0x${recipientStealthField}`,
+        `0x${params.minOutputAmount.toString(16).padStart(16, '0')}`,
+        `0x${solverId}`,
+        `0x${params.fulfillmentTime.toString(16).padStart(16, '0')}`,
+        `0x${params.expiry.toString(16).padStart(16, '0')}`,
+      ]
+
+      // Create ZKProof object
+      const proof: ZKProof = {
+        type: 'fulfillment',
+        proof: `0x${Buffer.from(proofData.proof).toString('hex')}`,
+        publicInputs,
+      }
+
+      return {
+        proof,
+        publicInputs,
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+
+      // Check for specific circuit errors
+      if (message.includes('Output below minimum')) {
+        throw new ProofGenerationError(
+          'fulfillment',
+          'Output amount is below minimum required',
+          error instanceof Error ? error : undefined
+        )
+      }
+      if (message.includes('Commitment') && message.includes('mismatch')) {
+        throw new ProofGenerationError(
+          'fulfillment',
+          'Output commitment verification failed',
+          error instanceof Error ? error : undefined
+        )
+      }
+      if (message.includes('Recipient mismatch')) {
+        throw new ProofGenerationError(
+          'fulfillment',
+          'Attestation recipient does not match',
+          error instanceof Error ? error : undefined
+        )
+      }
+      if (message.includes('Invalid oracle')) {
+        throw new ProofGenerationError(
+          'fulfillment',
+          'Oracle attestation signature is invalid',
+          error instanceof Error ? error : undefined
+        )
+      }
+      if (message.includes('Unauthorized solver')) {
+        throw new ProofGenerationError(
+          'fulfillment',
+          'Solver not authorized for this intent',
+          error instanceof Error ? error : undefined
+        )
+      }
+      if (message.includes('Fulfillment after expiry')) {
+        throw new ProofGenerationError(
+          'fulfillment',
+          'Fulfillment occurred after intent expiry',
+          error instanceof Error ? error : undefined
+        )
+      }
+
+      throw new ProofGenerationError(
+        'fulfillment',
+        `Failed to generate fulfillment proof: ${message}`,
+        error instanceof Error ? error : undefined
+      )
+    }
   }
 
   /**
@@ -477,10 +675,8 @@ export class NoirProofProvider implements ProofProvider {
         backend = this.validityBackend
         break
       case 'fulfillment':
-        throw new ProofError(
-          'Fulfillment proof verification not yet implemented',
-          ErrorCode.PROOF_NOT_IMPLEMENTED
-        )
+        backend = this.fulfillmentBackend
+        break
       default:
         throw new ProofError(
           `Unknown proof type: ${proof.type}`,
@@ -529,8 +725,13 @@ export class NoirProofProvider implements ProofProvider {
       await this.validityBackend.destroy()
       this.validityBackend = null
     }
+    if (this.fulfillmentBackend) {
+      await this.fulfillmentBackend.destroy()
+      this.fulfillmentBackend = null
+    }
     this.fundingNoir = null
     this.validityNoir = null
+    this.fulfillmentNoir = null
     this._isReady = false
   }
 
@@ -708,5 +909,79 @@ export class NoirProofProvider implements ProofProvider {
     const hash = sha256(preimage)
 
     return bytesToHex(hash)
+  }
+
+  /**
+   * Compute output commitment for fulfillment proof
+   *
+   * Uses SHA256 to simulate Pedersen commitment (for SDK-side computation)
+   * The actual circuit uses pedersen_commitment, and this must match
+   */
+  private async computeOutputCommitment(
+    outputAmount: bigint,
+    outputBlinding: Uint8Array
+  ): Promise<{ commitmentX: string; commitmentY: string }> {
+    const { sha256 } = await import('@noble/hashes/sha256')
+    const { bytesToHex } = await import('@noble/hashes/utils')
+
+    // Simulate commitment: hash(amount || blinding)
+    const amountBytes = this.bigintToBytes(outputAmount, 8)
+    const blindingBytes = outputBlinding.slice(0, 32)
+
+    const preimage = new Uint8Array([...amountBytes, ...blindingBytes])
+    const hash = sha256(preimage)
+
+    // Split hash into x and y components (16 bytes each)
+    const commitmentX = bytesToHex(hash.slice(0, 16)).padStart(64, '0')
+    const commitmentY = bytesToHex(hash.slice(16, 32)).padStart(64, '0')
+
+    return { commitmentX, commitmentY }
+  }
+
+  /**
+   * Compute solver ID from solver secret
+   *
+   * Uses SHA256 to simulate Pedersen hash (for SDK-side computation)
+   * The actual circuit uses pedersen_hash, and this must match
+   */
+  private async computeSolverId(solverSecretField: string): Promise<string> {
+    const { sha256 } = await import('@noble/hashes/sha256')
+    const { bytesToHex } = await import('@noble/hashes/utils')
+
+    // Simulate solver_id: hash(solver_secret)
+    const secretBytes = this.hexToBytes(solverSecretField.padStart(64, '0'))
+    const hash = sha256(secretBytes)
+
+    return bytesToHex(hash)
+  }
+
+  /**
+   * Compute oracle message hash for fulfillment proof
+   *
+   * Hash of attestation data that oracle signs
+   */
+  private async computeOracleMessageHash(
+    recipient: string,
+    amount: bigint,
+    txHash: string,
+    blockNumber: bigint
+  ): Promise<number[]> {
+    const { sha256 } = await import('@noble/hashes/sha256')
+
+    // Hash: recipient || amount || txHash || blockNumber
+    const recipientBytes = this.hexToBytes(this.hexToField(recipient))
+    const amountBytes = this.bigintToBytes(amount, 8)
+    const txHashBytes = this.hexToBytes(this.hexToField(txHash))
+    const blockBytes = this.bigintToBytes(blockNumber, 8)
+
+    const preimage = new Uint8Array([
+      ...recipientBytes,
+      ...amountBytes,
+      ...txHashBytes,
+      ...blockBytes,
+    ])
+    const hash = sha256(preimage)
+
+    return Array.from(hash)
   }
 }
