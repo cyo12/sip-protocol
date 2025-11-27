@@ -10,7 +10,7 @@
 
 Shielded Intents Protocol enables private cross-chain swaps. One toggle to shield sender, amount, and recipient using stealth addresses, Pedersen commitments, and viewing keys for compliance.
 
-**Status:** M5 Complete | 741/741 tests passing | Ready for Launch
+**Status:** M6 Complete | 741/741 tests passing | Live at sip-protocol.org
 
 ---
 
@@ -195,7 +195,7 @@ sip-protocol/sip-protocol     # This repo (core SDK monorepo)
 |------|---------|-----|--------|
 | `sip-protocol/sip-protocol` | Core SDK + Types (this repo) | - | ✅ Active |
 | `sip-protocol/sip-website` | Marketing site + Demo app | sip-protocol.org | ✅ Active |
-| `sip-protocol/docs-sip` | Documentation (Astro + Starlight) | docs.sip-protocol.org | 🔲 M6 |
+| `sip-protocol/docs-sip` | Documentation (Astro + Starlight) | docs.sip-protocol.org | ✅ Active |
 | `sip-protocol/.github` | Org-wide configs, profile | - | 📋 Planned |
 | `sip-protocol/circuits` | Noir ZK circuits | - | 📋 M8 |
 
@@ -222,7 +222,7 @@ sip-protocol/sip-protocol     # This repo (core SDK monorepo)
 | M3: SDK Production | ✅ Complete | Production SDK |
 | M4: Network Integration | ✅ Complete | NEAR, Zcash, wallets |
 | M5: Documentation & Launch | ✅ Complete | Docs, whitepaper |
-| M6: Launch & Publish | 🔲 In Progress | npm publish, docs site |
+| M6: Launch & Publish | ✅ Complete | npm publish, docs site |
 | M7: Real Demo Integration | 🔲 Planned | Live demo with real txs |
 | M8: Production Hardening | 🔲 Planned | Noir circuits, security |
 | M9: Horizontal Expansion | 🔲 Future | New use cases |
@@ -240,6 +240,52 @@ sip-protocol/sip-protocol     # This repo (core SDK monorepo)
 
 ---
 
+## VPS Deployment (176.222.53.185)
+
+### SIP Services on VPS
+
+| Service | Port | Container | Domain |
+|---------|------|-----------|--------|
+| sip-website (blue) | 5000 | sip-website-blue | sip-protocol.org |
+| sip-website (green) | 5001 | sip-website-green | - |
+| sip-website (staging) | 5002 | sip-website-staging | - |
+| sip-docs | 5003 | sip-docs | docs.sip-protocol.org |
+
+### Deployment Flow
+
+```
+Push to main → GitHub Actions → Build Docker → Push to GHCR → SSH deploy → docker compose up
+```
+
+### Docker Compose Isolation
+
+**CRITICAL:** All users share the same Docker daemon. Use `name:` in docker-compose.yml to isolate projects:
+
+```yaml
+name: sip  # Prevents conflicts with other projects
+
+services:
+  docs:
+    image: ghcr.io/sip-protocol/docs-sip:latest
+    container_name: sip-docs
+    ...
+```
+
+### SSH Access
+
+```bash
+ssh sip   # User: sip, has sudo
+ssh core  # Admin user for nginx/system config
+```
+
+### Key Files on VPS
+
+- `~/app/docker-compose.yml` - Service definitions
+- `/etc/nginx/sites-enabled/sip-docs.conf` - Nginx reverse proxy
+- `/etc/letsencrypt/live/docs.sip-protocol.org/` - SSL certs (auto-renew)
+
+---
+
 ## Code Style
 
 - 2-space indent, no semicolons
@@ -251,4 +297,4 @@ sip-protocol/sip-protocol     # This repo (core SDK monorepo)
 ---
 
 **Last Updated:** November 27, 2025
-**Status:** M5 Complete - Ready for Launch
+**Status:** M6 Complete - Live
