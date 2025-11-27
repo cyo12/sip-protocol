@@ -133,23 +133,63 @@ Polish and publish.
 
 ---
 
-## Future Roadmap (Post-Launch)
+### M6: Launch & Publish 🔲 Planned
 
-### Horizontal Expansion (New Use Cases)
+Publish SDK to npm and integrate into website.
 
-| Use Case | Description | Priority |
-|----------|-------------|----------|
-| Private Payments | Stablecoin transfers with privacy | High |
-| DAO Treasury | Private treasury operations | High |
-| Private Payroll | Salary payments with privacy | Medium |
+| Issue | Description | Status |
+|-------|-------------|--------|
+| [#48](../../issues/48) | [EPIC] Launch & Publish | 🔲 Open |
+| [#49](../../issues/49) | Configure NPM_TOKEN secret | 🔲 Open |
+| [#50](../../issues/50) | Create GitHub release v0.1.0 | 🔲 Open |
+| [#51](../../issues/51) | Verify npm packages work | 🔲 Open |
+| [#52](../../issues/52) | Update sip-website to use npm packages | 🔲 Open |
 
-### Vertical Expansion (Deeper Integration)
+---
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| More Chains | All NEAR-supported chains | Automatic |
-| Enterprise Compliance | Dashboard for auditors | High |
-| Hardware Wallets | Ledger/Trezor support | Medium |
+### M7: Real Demo Integration 🔲 Planned
+
+Connect demo UI to real SDK with actual blockchain transactions.
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| [#53](../../issues/53) | [EPIC] Real Demo Integration | 🔲 Open |
+| [#54](../../issues/54) | Wallet connection component (Phantom, MetaMask) | 🔲 Open |
+| [#55](../../issues/55) | SDK client initialization | 🔲 Open |
+| [#56](../../issues/56) | Testnet configuration (Solana Devnet, Sepolia) | 🔲 Open |
+| [#57](../../issues/57) | Quote flow integration (1Click API) | 🔲 Open |
+| [#58](../../issues/58) | Transaction execution flow | 🔲 Open |
+| [#59](../../issues/59) | Explorer links and tx status | 🔲 Open |
+| [#60](../../issues/60) | Error handling and edge cases | 🔲 Open |
+
+---
+
+### M8: Production Hardening 🔲 Planned
+
+Replace mock proofs with real ZK circuits and security hardening.
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| [#61](../../issues/61) | [EPIC] Production Hardening | 🔲 Open |
+| [#62](../../issues/62) | Noir Funding Proof circuit | 🔲 Open |
+| [#63](../../issues/63) | Noir Validity Proof circuit | 🔲 Open |
+| [#64](../../issues/64) | Noir Fulfillment Proof circuit | 🔲 Open |
+| [#65](../../issues/65) | Memory zeroization for secrets | 🔲 Open |
+| [#66](../../issues/66) | External security audit | 🔲 Open |
+
+---
+
+### M9: Horizontal Expansion 🔲 Future
+
+New use cases and deeper integration.
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| [#67](../../issues/67) | [EPIC] Horizontal Expansion | 🔲 Open |
+| [#68](../../issues/68) | Private Payments (stablecoin transfers) | 🔲 Open |
+| [#69](../../issues/69) | DAO Treasury operations | 🔲 Open |
+| [#70](../../issues/70) | Enterprise Compliance dashboard | 🔲 Open |
+| [#71](../../issues/71) | Hardware wallet support (Ledger/Trezor) | 🔲 Open |
 
 ---
 
@@ -189,10 +229,10 @@ Polish and publish.
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 Priority areas:
-- SDK integrations
-- Wallet support
-- Documentation
-- Security review
+- M6: npm publishing and integration
+- M7: Real demo with wallet connections
+- M8: Noir ZK circuit implementation
+- Security review and audit preparation
 
 ---
 
