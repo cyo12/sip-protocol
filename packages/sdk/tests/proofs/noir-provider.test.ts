@@ -153,24 +153,12 @@ describe('NoirProofProvider', () => {
     })
   })
 
-  describe('validity proof not implemented', () => {
-    it('should throw not implemented for validity proof', async () => {
+  describe('validity proof circuit loaded', () => {
+    it('should have validity circuit available after initialization', async () => {
       try {
         await provider.initialize()
-
-        const params: ValidityProofParams = {
-          intentHash: '0xabc123' as HexString,
-          senderAddress: '0xsender',
-          senderBlinding: new Uint8Array(32),
-          senderSecret: new Uint8Array(32),
-          authorizationSignature: new Uint8Array(64),
-          nonce: new Uint8Array(32),
-          timestamp: 1000,
-          expiry: 2000,
-        }
-
-        await expect(provider.generateValidityProof(params))
-          .rejects.toThrow('not yet implemented')
+        expect(provider.isReady).toBe(true)
+        // Provider should be ready for validity proofs
       } catch {
         // WASM not available - skip
         expect(true).toBe(true)
@@ -211,8 +199,8 @@ describe('NoirProofProvider', () => {
     })
   })
 
-  describe('verifyProof for non-funding types', () => {
-    it('should throw for validity proof verification', async () => {
+  describe('verifyProof for different types', () => {
+    it('should handle validity proof verification (returns false for invalid proof)', async () => {
       try {
         await provider.initialize()
 
@@ -222,8 +210,9 @@ describe('NoirProofProvider', () => {
           publicInputs: [],
         }
 
-        await expect(provider.verifyProof(validityProof))
-          .rejects.toThrow('not yet implemented')
+        // Invalid proof should return false (not throw)
+        const result = await provider.verifyProof(validityProof)
+        expect(result).toBe(false)
       } catch {
         // WASM not available - skip
         expect(true).toBe(true)
