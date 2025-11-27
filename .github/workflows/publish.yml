@@ -36,8 +36,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build packages
+        run: pnpm build
+
       - name: Run tests
         run: pnpm test -- --run
+        working-directory: packages/sdk
 
   publish-sdk:
     name: Publish SDK
