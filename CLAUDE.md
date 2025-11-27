@@ -1,7 +1,7 @@
 # CLAUDE.md - SIP Protocol Core
 
 **Repository:** https://github.com/sip-protocol/sip-protocol
-**Website:** TBD (sip-protocol.xyz)
+**Website:** https://sip-protocol.org
 **Purpose:** Privacy layer for cross-chain transactions via NEAR Intents + Zcash
 
 ---
@@ -10,7 +10,7 @@
 
 Shielded Intents Protocol enables private cross-chain swaps. One toggle to shield sender, amount, and recipient using stealth addresses, Pedersen commitments, and viewing keys for compliance.
 
-**Status:** M4 Complete | 741/741 tests passing | Application Layer positioning
+**Status:** M5 Complete | 741/741 tests passing | Ready for Launch
 
 ---
 
@@ -66,9 +66,6 @@ User Intent → Privacy Layer (SIP) → NEAR Intents → Multi-chain Settlement
 # Install dependencies
 pnpm install
 
-# Run dev server (demo app)
-pnpm dev
-
 # Run all tests (741 tests, ~20s)
 pnpm test -- --run
 
@@ -84,6 +81,8 @@ pnpm lint
 # Build all packages
 pnpm build
 ```
+
+**Note:** Demo application is in [sip-protocol/sip-website](https://github.com/sip-protocol/sip-website).
 
 ---
 
@@ -171,8 +170,7 @@ See `.strategy/ROADMAP-INTERNAL.md` for detailed strategy (private).
 ## Project Structure
 
 ```
-sip-protocol/sip-protocol     # This repo (core monorepo)
-├── apps/demo/                # Next.js demo application
+sip-protocol/sip-protocol     # This repo (core SDK monorepo)
 ├── packages/
 │   ├── sdk/                  # @sip-protocol/sdk - Core SDK
 │   │   ├── src/
@@ -191,13 +189,13 @@ sip-protocol/sip-protocol     # This repo (core monorepo)
 
 ---
 
-## Related Repositories (Planned)
+## Related Repositories
 
 | Repo | Purpose | Status |
 |------|---------|--------|
 | `sip-protocol/sip-protocol` | Core SDK + Types (this repo) | ✅ Active |
+| `sip-protocol/sip-website` | Website + Demo (sip-protocol.org) | ✅ Active |
 | `sip-protocol/.github` | Org-wide configs, profile | 📋 Planned |
-| `sip-protocol/docs-sip` | Documentation site | 📋 Planned |
 | `sip-protocol/circuits` | Noir ZK circuits | 📋 Planned |
 | `sip-protocol/awesome-sip` | Examples, community | 📋 Future |
 
@@ -223,19 +221,18 @@ sip-protocol/sip-protocol     # This repo (core monorepo)
 | M2: Cryptographic Core | ✅ Complete | ~150 |
 | M3: SDK Production | ✅ Complete | ~300 |
 | M4: Network Integration | ✅ Complete | ~200 |
-| M5: Documentation & Launch | 🔄 In Progress | - |
+| M5: Documentation & Launch | ✅ Complete | - |
 
 ---
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router) + TypeScript (strict)
-- **Styling:** Tailwind CSS + shadcn/ui
-- **State:** Zustand
+- **Language:** TypeScript (strict)
 - **Monorepo:** pnpm + Turborepo
 - **Crypto:** @noble/curves (secp256k1), @noble/hashes, @noble/ciphers
 - **Testing:** Vitest
-- **Deploy:** Vercel (planned)
+- **CI/CD:** GitHub Actions
+- **Publish:** npm registry
 
 ---
 
@@ -250,4 +247,4 @@ sip-protocol/sip-protocol     # This repo (core monorepo)
 ---
 
 **Last Updated:** November 27, 2025
-**Status:** M4 Complete - Starting M5 Documentation & Launch
+**Status:** M5 Complete - Ready for Launch

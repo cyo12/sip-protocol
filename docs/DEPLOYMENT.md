@@ -1,32 +1,36 @@
 # Deployment Guide
 
-This document describes how to set up CI/CD and deployment for SIP Protocol.
+This document describes CI/CD and deployment for SIP Protocol packages.
+
+---
+
+## Repository Structure
+
+SIP Protocol uses two repositories:
+
+| Repository | Purpose | Deployment |
+|------------|---------|------------|
+| `sip-protocol/sip-protocol` | Core SDK + Types (this repo) | npm registry |
+| `sip-protocol/sip-website` | Website + Demo | VPS (Docker) |
+
+**Demo Application:** The interactive demo lives at [sip-protocol/sip-website](https://github.com/sip-protocol/sip-website) and is deployed to `sip-protocol.org/demo`.
 
 ---
 
 ## CI/CD Workflows
 
-The repository includes three GitHub Actions workflows:
+This repository includes two GitHub Actions workflows:
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
 | CI | `ci.yml` | Push/PR to main/dev | Lint, typecheck, test, build |
-| Deploy Demo | `deploy-demo.yml` | Push to main | Deploy demo app to Vercel |
 | Publish | `publish.yml` | GitHub Release | Publish packages to npm |
 
 ---
 
 ## Required Secrets
 
-Configure these secrets in GitHub repository settings (`Settings > Secrets and variables > Actions`):
-
-### Vercel Deployment
-
-| Secret | Description | How to obtain |
-|--------|-------------|---------------|
-| `VERCEL_ORG_ID` | Vercel organization/user ID | Vercel Dashboard > Settings > General |
-| `VERCEL_PROJECT_ID` | Vercel project ID | Create project in Vercel, check `.vercel/project.json` |
-| `VERCEL_TOKEN` | Vercel API token | Vercel Dashboard > Settings > Tokens |
+Configure in GitHub repository settings (`Settings > Secrets and variables > Actions`):
 
 ### npm Publishing
 
@@ -38,32 +42,14 @@ Configure these secrets in GitHub repository settings (`Settings > Secrets and v
 
 ## Initial Setup
 
-### 1. Vercel Project Setup
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Navigate to demo app
-cd apps/demo
-
-# Link to Vercel (creates project if needed)
-vercel link
-
-# This creates .vercel/project.json with orgId and projectId
-cat .vercel/project.json
-```
-
-Copy the `orgId` and `projectId` to GitHub secrets.
-
-### 2. npm Account Setup
+### 1. npm Account Setup
 
 1. Create npm account at [npmjs.com](https://www.npmjs.com/)
 2. Create organization `@sip-protocol` (or use personal scope)
 3. Generate automation token: Account > Access Tokens > Generate New Token
 4. Add token to GitHub secrets as `NPM_TOKEN`
 
-### 3. Enable GitHub Actions
+### 2. Enable GitHub Actions
 
 Ensure GitHub Actions is enabled for the repository:
 - Go to `Settings > Actions > General`
@@ -87,17 +73,6 @@ Runs on every push and pull request to `main` and `dev` branches.
 - Test job requires lint-and-typecheck
 - Build job runs in parallel
 
-### Deploy Demo Workflow (`deploy-demo.yml`)
-
-Triggers on push to `main` when changes affect:
-- `apps/demo/**`
-- `packages/**`
-- `pnpm-lock.yaml`
-
-**Jobs:**
-1. **deploy** - Builds and deploys to Vercel production
-2. **notify** - Reports deployment status
-
 ### Publish Workflow (`publish.yml`)
 
 Triggers on GitHub Release or manual workflow dispatch.
@@ -109,17 +84,16 @@ Triggers on GitHub Release or manual workflow dispatch.
 
 ---
 
-## Manual Deployment
+## Publishing Packages
 
-### Deploy Demo Manually
+### Automated (Recommended)
 
-```bash
-# From repository root
-cd apps/demo
-vercel --prod
-```
+1. Update versions in `packages/*/package.json`
+2. Update CHANGELOG.md
+3. Create GitHub Release with tag (e.g., `v0.1.0`)
+4. Workflow automatically publishes to npm
 
-### Publish Packages Manually
+### Manual
 
 ```bash
 # Build all packages
@@ -136,17 +110,22 @@ npm publish --access public
 
 ---
 
-## Vercel Configuration
+## Demo & Website Deployment
 
-The demo app uses custom Vercel configuration (`apps/demo/vercel.json`):
+The demo application and marketing website are in a separate repository:
 
-- **Framework:** Next.js
-- **Region:** IAD1 (US East)
-- **Security Headers:**
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: DENY`
-  - `X-XSS-Protection: 1; mode=block`
-  - `Referrer-Policy: strict-origin-when-cross-origin`
+**Repository:** [sip-protocol/sip-website](https://github.com/sip-protocol/sip-website)
+
+**Deployment:** VPS with Docker (blue-green deployment)
+- **Production:** sip-protocol.org (ports 5000/5001)
+- **Staging:** staging.sip-protocol.org (port 5002)
+
+**Architecture:**
+```
+GitHub Push → GitHub Actions → GHCR → SSH Deploy → Docker Compose
+```
+
+See the [sip-website repository](https://github.com/sip-protocol/sip-website) for deployment details.
 
 ---
 
@@ -167,20 +146,6 @@ cd packages/sdk
 pnpm test:coverage
 ```
 
-### Vercel Build Fails
-
-Check that the monorepo builds correctly:
-
-```bash
-# From root
-pnpm install
-pnpm build
-
-# Then demo specifically
-cd apps/demo
-pnpm build
-```
-
 ### npm Publish 403 Error
 
 - Ensure package name is available or you own the scope
@@ -197,20 +162,6 @@ Before publishing a release:
 2. Update CHANGELOG.md
 3. Create GitHub Release with tag (e.g., `v0.1.0`)
 4. Workflow automatically publishes to npm
-
----
-
-## Environment Variables
-
-### Demo App (.env.local)
-
-```env
-# Optional: Analytics
-NEXT_PUBLIC_ANALYTICS_ID=
-
-# Optional: Feature flags
-NEXT_PUBLIC_ENABLE_TESTNET=true
-```
 
 ---
 
