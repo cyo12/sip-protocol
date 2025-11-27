@@ -25,6 +25,7 @@ import { hkdf } from '@noble/hashes/hkdf'
 import { bytesToHex, hexToBytes, randomBytes, utf8ToBytes } from '@noble/hashes/utils'
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js'
 import { ValidationError, CryptoError, ErrorCode } from './errors'
+import { secureWipe } from './secure-memory'
 
 /**
  * Maximum size for decrypted transaction data (1MB)
@@ -99,13 +100,19 @@ export function getPrivacyConfig(
  */
 export function generateViewingKey(path: string = 'm/0'): ViewingKey {
   const keyBytes = randomBytes(32)
-  const key = `0x${bytesToHex(keyBytes)}` as HexString
-  const hashBytes = sha256(keyBytes)
 
-  return {
-    key,
-    path,
-    hash: `0x${bytesToHex(hashBytes)}` as Hash,
+  try {
+    const key = `0x${bytesToHex(keyBytes)}` as HexString
+    const hashBytes = sha256(keyBytes)
+
+    return {
+      key,
+      path,
+      hash: `0x${bytesToHex(hashBytes)}` as Hash,
+    }
+  } finally {
+    // Securely wipe key bytes after converting to hex
+    secureWipe(keyBytes)
   }
 }
 
@@ -138,17 +145,28 @@ export function deriveViewingKey(
   // This follows BIP32-style hierarchical derivation
   const derivedFull = hmac(sha512, masterKeyBytes, childPathBytes)
 
-  // Take first 32 bytes as the derived key (standard practice)
-  const derivedBytes = derivedFull.slice(0, 32)
-  const derived = `0x${bytesToHex(derivedBytes)}` as HexString
+  try {
+    // Take first 32 bytes as the derived key (standard practice)
+    const derivedBytes = derivedFull.slice(0, 32)
+    const derived = `0x${bytesToHex(derivedBytes)}` as HexString
 
-  // Compute hash of the derived key for identification
-  const hashBytes = sha256(derivedBytes)
+    // Compute hash of the derived key for identification
+    const hashBytes = sha256(derivedBytes)
 
-  return {
-    key: derived,
-    path: `${masterKey.path}/${childPath}`,
-    hash: `0x${bytesToHex(hashBytes)}` as Hash,
+    const result = {
+      key: derived,
+      path: `${masterKey.path}/${childPath}`,
+      hash: `0x${bytesToHex(hashBytes)}` as Hash,
+    }
+
+    // Wipe derived bytes after conversion to hex
+    secureWipe(derivedBytes)
+
+    return result
+  } finally {
+    // Securely wipe master key bytes and full derivation output
+    secureWipe(masterKeyBytes)
+    secureWipe(derivedFull)
   }
 }
 
@@ -172,7 +190,7 @@ const NONCE_SIZE = 24
  * Uses HKDF-SHA256 with domain separation for security.
  *
  * @param viewingKey - The viewing key to derive from
- * @returns 32-byte encryption key
+ * @returns 32-byte encryption key (caller must wipe after use)
  */
 function deriveEncryptionKey(viewingKey: ViewingKey): Uint8Array {
   // Extract the raw key bytes (remove 0x prefix)
@@ -181,12 +199,17 @@ function deriveEncryptionKey(viewingKey: ViewingKey): Uint8Array {
     : viewingKey.key
   const keyBytes = hexToBytes(keyHex)
 
-  // Use HKDF to derive a proper encryption key
-  // HKDF(SHA256, ikm=viewingKey, salt=domain, info=path, length=32)
-  const salt = utf8ToBytes(ENCRYPTION_DOMAIN)
-  const info = utf8ToBytes(viewingKey.path)
+  try {
+    // Use HKDF to derive a proper encryption key
+    // HKDF(SHA256, ikm=viewingKey, salt=domain, info=path, length=32)
+    const salt = utf8ToBytes(ENCRYPTION_DOMAIN)
+    const info = utf8ToBytes(viewingKey.path)
 
-  return hkdf(sha256, keyBytes, salt, info, 32)
+    return hkdf(sha256, keyBytes, salt, info, 32)
+  } finally {
+    // Securely wipe source key bytes
+    secureWipe(keyBytes)
+  }
 }
 
 // ─── Transaction Data Type ────────────────────────────────────────────────────
@@ -233,20 +256,25 @@ export function encryptForViewing(
   // Derive encryption key from viewing key
   const key = deriveEncryptionKey(viewingKey)
 
-  // Generate random nonce (24 bytes for XChaCha20)
-  const nonce = randomBytes(NONCE_SIZE)
+  try {
+    // Generate random nonce (24 bytes for XChaCha20)
+    const nonce = randomBytes(NONCE_SIZE)
 
-  // Serialize data to JSON
-  const plaintext = utf8ToBytes(JSON.stringify(data))
+    // Serialize data to JSON
+    const plaintext = utf8ToBytes(JSON.stringify(data))
 
-  // Encrypt with XChaCha20-Poly1305
-  const cipher = xchacha20poly1305(key, nonce)
-  const ciphertext = cipher.encrypt(plaintext)
+    // Encrypt with XChaCha20-Poly1305
+    const cipher = xchacha20poly1305(key, nonce)
+    const ciphertext = cipher.encrypt(plaintext)
 
-  return {
-    ciphertext: `0x${bytesToHex(ciphertext)}` as HexString,
-    nonce: `0x${bytesToHex(nonce)}` as HexString,
-    viewingKeyHash: viewingKey.hash,
+    return {
+      ciphertext: `0x${bytesToHex(ciphertext)}` as HexString,
+      nonce: `0x${bytesToHex(nonce)}` as HexString,
+      viewingKeyHash: viewingKey.hash,
+    }
+  } finally {
+    // Securely wipe encryption key after use
+    secureWipe(key)
   }
 }
 
@@ -287,76 +315,81 @@ export function decryptWithViewing(
   // Derive encryption key from viewing key
   const key = deriveEncryptionKey(viewingKey)
 
-  // Parse nonce and ciphertext
-  const nonceHex = encrypted.nonce.startsWith('0x')
-    ? encrypted.nonce.slice(2)
-    : encrypted.nonce
-  const nonce = hexToBytes(nonceHex)
-
-  const ciphertextHex = encrypted.ciphertext.startsWith('0x')
-    ? encrypted.ciphertext.slice(2)
-    : encrypted.ciphertext
-  const ciphertext = hexToBytes(ciphertextHex)
-
-  // Decrypt with XChaCha20-Poly1305
-  // This will throw if authentication fails (wrong key or tampered data)
-  const cipher = xchacha20poly1305(key, nonce)
-  let plaintext: Uint8Array
-
   try {
-    plaintext = cipher.decrypt(ciphertext)
-  } catch (e) {
-    throw new CryptoError(
-      'Decryption failed - authentication tag verification failed. ' +
-      'Either the viewing key is incorrect or the data has been tampered with.',
-      ErrorCode.DECRYPTION_FAILED,
-      {
-        cause: e instanceof Error ? e : undefined,
-        operation: 'decryptWithViewing',
-      }
-    )
-  }
+    // Parse nonce and ciphertext
+    const nonceHex = encrypted.nonce.startsWith('0x')
+      ? encrypted.nonce.slice(2)
+      : encrypted.nonce
+    const nonce = hexToBytes(nonceHex)
 
-  // Parse JSON
-  const textDecoder = new TextDecoder()
-  const jsonString = textDecoder.decode(plaintext)
+    const ciphertextHex = encrypted.ciphertext.startsWith('0x')
+      ? encrypted.ciphertext.slice(2)
+      : encrypted.ciphertext
+    const ciphertext = hexToBytes(ciphertextHex)
 
-  // Validate size before parsing to prevent DoS
-  if (jsonString.length > MAX_TRANSACTION_DATA_SIZE) {
-    throw new ValidationError(
-      `decrypted data exceeds maximum size limit (${MAX_TRANSACTION_DATA_SIZE} bytes)`,
-      'transactionData',
-      { received: jsonString.length, max: MAX_TRANSACTION_DATA_SIZE },
-      ErrorCode.INVALID_INPUT
-    )
-  }
+    // Decrypt with XChaCha20-Poly1305
+    // This will throw if authentication fails (wrong key or tampered data)
+    const cipher = xchacha20poly1305(key, nonce)
+    let plaintext: Uint8Array
 
-  try {
-    const data = JSON.parse(jsonString) as TransactionData
-    // Validate required fields
-    if (
-      typeof data.sender !== 'string' ||
-      typeof data.recipient !== 'string' ||
-      typeof data.amount !== 'string' ||
-      typeof data.timestamp !== 'number'
-    ) {
+    try {
+      plaintext = cipher.decrypt(ciphertext)
+    } catch (e) {
+      throw new CryptoError(
+        'Decryption failed - authentication tag verification failed. ' +
+        'Either the viewing key is incorrect or the data has been tampered with.',
+        ErrorCode.DECRYPTION_FAILED,
+        {
+          cause: e instanceof Error ? e : undefined,
+          operation: 'decryptWithViewing',
+        }
+      )
+    }
+
+    // Parse JSON
+    const textDecoder = new TextDecoder()
+    const jsonString = textDecoder.decode(plaintext)
+
+    // Validate size before parsing to prevent DoS
+    if (jsonString.length > MAX_TRANSACTION_DATA_SIZE) {
       throw new ValidationError(
-        'invalid transaction data format',
+        `decrypted data exceeds maximum size limit (${MAX_TRANSACTION_DATA_SIZE} bytes)`,
         'transactionData',
-        { received: data },
+        { received: jsonString.length, max: MAX_TRANSACTION_DATA_SIZE },
         ErrorCode.INVALID_INPUT
       )
     }
-    return data
-  } catch (e) {
-    if (e instanceof SyntaxError) {
-      throw new CryptoError(
-        'Decryption succeeded but data is malformed JSON',
-        ErrorCode.DECRYPTION_FAILED,
-        { cause: e, operation: 'decryptWithViewing' }
-      )
+
+    try {
+      const data = JSON.parse(jsonString) as TransactionData
+      // Validate required fields
+      if (
+        typeof data.sender !== 'string' ||
+        typeof data.recipient !== 'string' ||
+        typeof data.amount !== 'string' ||
+        typeof data.timestamp !== 'number'
+      ) {
+        throw new ValidationError(
+          'invalid transaction data format',
+          'transactionData',
+          { received: data },
+          ErrorCode.INVALID_INPUT
+        )
+      }
+      return data
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        throw new CryptoError(
+          'Decryption succeeded but data is malformed JSON',
+          ErrorCode.DECRYPTION_FAILED,
+          { cause: e, operation: 'decryptWithViewing' }
+        )
+      }
+      throw e
     }
-    throw e
+  } finally {
+    // Securely wipe encryption key after use
+    secureWipe(key)
   }
 }
 

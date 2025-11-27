@@ -95,6 +95,14 @@ export {
   generateRandomBytes,
 } from './crypto'
 
+// Secure memory handling
+export {
+  secureWipe,
+  secureWipeAll,
+  withSecureBuffer,
+  withSecureBufferSync,
+} from './secure-memory'
+
 // Pedersen Commitments (recommended for new code)
 export {
   commit,

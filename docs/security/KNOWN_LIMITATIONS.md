@@ -70,24 +70,36 @@ Pattern becomes identifiable across transactions
 
 ### 1. Memory Handling
 
-**Current state**: No explicit zeroization
+**Current state**: ✅ Implemented (v0.1.1)
 
-**Risk**:
+**Implementation**:
 ```typescript
-// Current code
-const privateKey = generatePrivateKey()
-// ... use key ...
-// Key remains in memory until GC
+import { secureWipe, withSecureBuffer } from '@sip-protocol/sdk'
 
-// Should be
-const privateKey = generatePrivateKey()
+// Manual cleanup
+const privateKey = randomBytes(32)
 // ... use key ...
-secureZero(privateKey)  // Not implemented
+secureWipe(privateKey) // Overwrites with random, then zeros
+
+// Automatic cleanup pattern
+const signature = await withSecureBuffer(
+  () => generatePrivateKey(),
+  async (key) => signMessage(message, key)
+)
+// key is automatically wiped after use
 ```
 
-**Impact**: Private keys may persist in memory
+**Files protected**:
+- `stealth.ts`: Spending/viewing private keys, ephemeral keys
+- `privacy.ts`: Viewing keys, encryption keys
+- `commitment.ts`: Blinding factors
 
-**Future work**: Implement secure memory handling
+**Limitations**:
+- JavaScript GC may leave copies in memory
+- JIT compilation may create copies
+- Memory may be swapped to disk
+
+This provides best-effort cleanup for JavaScript environments.
 
 ### 2. Side-Channel Considerations
 
@@ -258,7 +270,7 @@ But value created from nothing!
 
 | Issue | Impact | Location |
 |-------|--------|----------|
-| No memory zeroization | Key leakage | All key handling |
+| ~~No memory zeroization~~ | ✅ Fixed | secure-memory.ts |
 | No range proofs | Value creation | proof system |
 | Limited error handling | Info leakage | Various |
 
@@ -334,7 +346,7 @@ But value created from nothing!
 ## Roadmap for Addressing Limitations
 
 ### Phase 1: Security Hardening
-- [ ] Memory zeroization
+- [x] Memory zeroization (v0.1.1)
 - [ ] Error message standardization
 - [ ] Additional input validation
 
