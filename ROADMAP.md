@@ -186,17 +186,19 @@ Replace mock proofs with real ZK circuits and security hardening.
 
 ---
 
-### M9: Horizontal Expansion 🚧 In Progress
+### M9: Horizontal Expansion ✅ Complete
 
 New use cases and deeper integration.
 
 | Issue | Description | Status |
 |-------|-------------|--------|
-| [#68](../../issues/68) | [EPIC] Horizontal Expansion | 🚧 Active |
+| [#68](../../issues/68) | [EPIC] Horizontal Expansion | ✅ Done |
 | [#69](../../issues/69) | Private Payments (stablecoin transfers) | ✅ Done |
-| [#70](../../issues/70) | DAO Treasury operations | 🔲 Open |
-| [#71](../../issues/71) | Enterprise Compliance dashboard | 🔲 Open |
-| [#72](../../issues/72) | Hardware wallet support (Ledger/Trezor) | 🔲 Open |
+| [#70](../../issues/70) | DAO Treasury operations | ✅ Done |
+| [#71](../../issues/71) | Enterprise Compliance dashboard | ✅ Done |
+| [#72](../../issues/72) | Hardware wallet support (Ledger/Trezor) | ✅ Done |
+
+**Achievement**: 203 new tests across 4 modules: Private Payments (58), DAO Treasury (45), Enterprise Compliance (51), Hardware Wallets (49).
 
 ---
 
@@ -221,7 +223,7 @@ New use cases and deeper integration.
 | SDK Core | ✅ Complete |
 | Input Validation | ✅ Complete |
 | Error Handling | ✅ Complete |
-| SDK Unit Tests (820 tests) | ✅ Complete |
+| SDK Unit Tests (965 tests) | ✅ Complete |
 | Integration Tests | ✅ Complete |
 | E2E Tests (128 tests) | ✅ Complete |
 | Performance Benchmarks | ✅ Complete |
@@ -238,6 +240,9 @@ New use cases and deeper integration.
 | Secure Memory Handling | ✅ Complete |
 | Private Payments Module | ✅ Complete |
 | Stablecoin Registry | ✅ Complete |
+| DAO Treasury Module | ✅ Complete |
+| Enterprise Compliance | ✅ Complete |
+| Hardware Wallet Support | ✅ Complete |
 
 ---
 
@@ -245,10 +250,10 @@ New use cases and deeper integration.
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Priority areas:
-- M9: DAO Treasury operations (#70)
-- M9: Enterprise Compliance dashboard (#71)
-- M9: Hardware wallet support (#72)
+All planned milestones (M1-M9) are complete. Future areas of interest:
+- Additional chain integrations
+- Mobile wallet support
+- Advanced ZK optimizations
 
 ---
 
