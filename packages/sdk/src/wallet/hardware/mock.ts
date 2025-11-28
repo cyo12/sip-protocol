@@ -73,7 +73,6 @@ export class MockLedgerAdapter extends BaseWalletAdapter {
     super()
     this.chain = config.chain
     this.config = {
-      deviceType: 'ledger',
       model: 'nanoX',
       accountIndex: 0,
       isLocked: false,
@@ -403,7 +402,6 @@ export class MockTrezorAdapter extends BaseWalletAdapter {
     super()
     this.chain = config.chain
     this.config = {
-      deviceType: 'trezor',
       model: 'T',
       accountIndex: 0,
       isLocked: false,

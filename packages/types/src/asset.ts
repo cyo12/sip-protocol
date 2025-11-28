@@ -31,6 +31,7 @@ export const NATIVE_TOKENS: Record<ChainId, Asset> = {
   arbitrum: { chain: 'arbitrum', symbol: 'ETH', address: null, decimals: 18 },
   optimism: { chain: 'optimism', symbol: 'ETH', address: null, decimals: 18 },
   base: { chain: 'base', symbol: 'ETH', address: null, decimals: 18 },
+  bitcoin: { chain: 'bitcoin', symbol: 'BTC', address: null, decimals: 8 },
 }
 
 /**

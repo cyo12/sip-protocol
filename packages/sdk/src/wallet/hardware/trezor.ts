@@ -297,7 +297,7 @@ export class TrezorWalletAdapter extends BaseWalletAdapter {
       this.trezorConnect = TrezorConnect.default
 
       // Initialize with manifest
-      await this.trezorConnect.init({
+      await this.trezorConnect!.init({
         manifest: {
           email: this.config.manifestEmail!,
           appUrl: this.config.manifestUrl!,
@@ -331,20 +331,33 @@ export class TrezorWalletAdapter extends BaseWalletAdapter {
     const result = await this.trezorConnect.getFeatures()
 
     if (!result.success) {
+      const errorPayload = result.payload as { error?: string }
       throw new HardwareWalletError(
-        result.payload.error ?? 'Failed to get device features',
+        errorPayload.error ?? 'Failed to get device features',
         HardwareErrorCode.TRANSPORT_ERROR,
         'trezor'
       )
     }
 
+    // Type assertion after success check - payload is now the features object
+    const features = result.payload as {
+      model: string
+      major_version: number
+      minor_version: number
+      patch_version: number
+      label?: string
+      device_id?: string
+      pin_protection?: boolean
+      pin_cached?: boolean
+    }
+
     return {
-      model: result.payload.model,
-      firmwareVersion: `${result.payload.major_version}.${result.payload.minor_version}.${result.payload.patch_version}`,
-      label: result.payload.label ?? undefined,
-      deviceId: result.payload.device_id ?? undefined,
-      pinProtection: result.payload.pin_protection ?? false,
-      pinCached: result.payload.pin_cached ?? false,
+      model: features.model,
+      firmwareVersion: `${features.major_version}.${features.minor_version}.${features.patch_version}`,
+      label: features.label ?? undefined,
+      deviceId: features.device_id ?? undefined,
+      pinProtection: features.pin_protection ?? false,
+      pinCached: features.pin_cached ?? false,
     }
   }
 
@@ -374,16 +387,18 @@ export class TrezorWalletAdapter extends BaseWalletAdapter {
       })
 
       if (!result.success) {
+        const errorPayload = result.payload as { error?: string }
         throw new HardwareWalletError(
-          result.payload.error ?? 'Failed to get address',
+          errorPayload.error ?? 'Failed to get address',
           HardwareErrorCode.TRANSPORT_ERROR,
           'trezor'
         )
       }
 
+      const addressPayload = result.payload as { address: string }
       return {
-        address: result.payload.address,
-        publicKey: result.payload.address as HexString, // Trezor returns address, not public key for Ethereum
+        address: addressPayload.address,
+        publicKey: addressPayload.address as HexString, // Trezor returns address, not public key for Ethereum
         derivationPath: path,
         index,
         chain: this.chain,
@@ -419,18 +434,20 @@ export class TrezorWalletAdapter extends BaseWalletAdapter {
       })
 
       if (!result.success) {
+        const errorPayload = result.payload as { error?: string }
         throw new HardwareWalletError(
-          result.payload.error ?? 'Failed to sign message',
+          errorPayload.error ?? 'Failed to sign message',
           HardwareErrorCode.USER_REJECTED,
           'trezor'
         )
       }
 
+      const signaturePayload = result.payload as { signature: string }
       return {
         r: '0x' as HexString,
         s: '0x' as HexString,
         v: 0,
-        signature: `0x${result.payload.signature}` as HexString,
+        signature: `0x${signaturePayload.signature}` as HexString,
       }
     }
 
@@ -470,18 +487,20 @@ export class TrezorWalletAdapter extends BaseWalletAdapter {
       })
 
       if (!result.success) {
+        const errorPayload = result.payload as { error?: string }
         throw new HardwareWalletError(
-          result.payload.error ?? 'Failed to sign transaction',
+          errorPayload.error ?? 'Failed to sign transaction',
           HardwareErrorCode.USER_REJECTED,
           'trezor'
         )
       }
 
+      const txPayload = result.payload as { r: string; s: string; v: string }
       return {
-        r: `0x${result.payload.r}` as HexString,
-        s: `0x${result.payload.s}` as HexString,
-        v: parseInt(result.payload.v, 16),
-        signature: `0x${result.payload.r}${result.payload.s}${result.payload.v}` as HexString,
+        r: `0x${txPayload.r}` as HexString,
+        s: `0x${txPayload.s}` as HexString,
+        v: parseInt(txPayload.v, 16),
+        signature: `0x${txPayload.r}${txPayload.s}${txPayload.v}` as HexString,
       }
     }
 

@@ -400,7 +400,7 @@ export class LedgerWalletAdapter extends BaseWalletAdapter {
           chain: this.chain,
         }
       } else if (this.chain === 'solana') {
-        const solApp = this.app as SolanaApp
+        const solApp = this.app as unknown as SolanaApp
         const { address } = await solApp.getAddress(path)
         return {
           address: address.toString(),
@@ -439,7 +439,7 @@ export class LedgerWalletAdapter extends BaseWalletAdapter {
     }
 
     if (this.chain === 'solana') {
-      const solApp = this.app as SolanaApp
+      const solApp = this.app as unknown as SolanaApp
       const result = await solApp.signOffchainMessage(this._derivationPath, message)
 
       return {
@@ -478,7 +478,7 @@ export class LedgerWalletAdapter extends BaseWalletAdapter {
     }
 
     if (this.chain === 'solana') {
-      const solApp = this.app as SolanaApp
+      const solApp = this.app as unknown as SolanaApp
       const txData = tx.data as Uint8Array
       const result = await solApp.signTransaction(this._derivationPath, txData)
 

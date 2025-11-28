@@ -144,6 +144,7 @@ const CHAIN_TYPE_MAP: Record<ChainId, ChainType> = {
   arbitrum: 'arb',
   optimism: 'optimism',
   base: 'base',
+  bitcoin: 'btc',
 }
 
 /**
