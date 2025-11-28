@@ -45,8 +45,8 @@ export {
 export type { SerializedError } from './errors'
 
 // Main client
-export { SIP, createSIP } from './sip'
-export type { SIPConfig, WalletAdapter } from './sip'
+export { SIP, createSIP, createProductionSIP } from './sip'
+export type { SIPConfig, WalletAdapter, ProductionQuote } from './sip'
 
 // Intent creation
 export {
