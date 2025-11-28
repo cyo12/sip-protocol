@@ -186,7 +186,18 @@ export type {
   ChainId,
   HexString,
   Hash,
+  // Payment types
+  StablecoinSymbol,
+  PaymentPurpose,
+  PaymentStatusType,
+  ShieldedPayment,
+  CreatePaymentParams,
+  PaymentReceipt,
+  TrackedPayment,
 } from '@sip-protocol/types'
+
+// Payment status enum
+export { PaymentStatus } from '@sip-protocol/types'
 
 // Network Adapters
 export {
@@ -282,6 +293,34 @@ export type {
   ZcashBlockchainInfo,
   ZcashNetworkInfo,
 } from '@sip-protocol/types'
+
+// Private Payments
+export {
+  PaymentBuilder,
+  createShieldedPayment,
+  decryptMemo,
+  trackPayment,
+  isPaymentExpired,
+  getPaymentTimeRemaining,
+  serializePayment,
+  deserializePayment,
+  getPaymentSummary,
+  // Stablecoin registry
+  STABLECOIN_INFO,
+  STABLECOIN_ADDRESSES,
+  STABLECOIN_DECIMALS,
+  getStablecoin,
+  getStablecoinsForChain,
+  isStablecoin,
+  getStablecoinInfo,
+  getSupportedStablecoins,
+  isStablecoinOnChain,
+  getChainsForStablecoin,
+  toStablecoinUnits,
+  fromStablecoinUnits,
+  formatStablecoinAmount,
+} from './payment'
+export type { CreatePaymentOptions, StablecoinInfo } from './payment'
 
 // Wallet Adapters
 export {

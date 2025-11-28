@@ -126,6 +126,18 @@ export type {
   ZcashNetworkInfo,
 } from './zcash'
 
+// Payments
+export { PaymentStatus } from './payment'
+export type {
+  StablecoinSymbol,
+  PaymentPurpose,
+  PaymentStatusType,
+  ShieldedPayment,
+  CreatePaymentParams,
+  PaymentReceipt,
+  TrackedPayment,
+} from './payment'
+
 // Wallet Adapters
 export { WalletErrorCode } from './wallet'
 export type {
