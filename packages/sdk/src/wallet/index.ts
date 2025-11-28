@@ -84,6 +84,46 @@ export type {
   MockEthereumAdapterConfig,
 } from './ethereum'
 
+// Hardware wallet adapters
+export {
+  // Types
+  type HardwareWalletType,
+  type LedgerModel,
+  type TrezorModel,
+  type HardwareConnectionStatus,
+  type TransportType,
+  type HardwareDeviceInfo,
+  type HardwareWalletConfig,
+  type LedgerConfig,
+  type TrezorConfig,
+  type HardwareSignRequest,
+  type HardwareEthereumTx,
+  type HardwareSignature,
+  type HardwareAccount,
+  type HardwareTransport,
+  type HardwareErrorCodeType,
+  type MockHardwareConfig,
+  HardwareErrorCode,
+  HardwareWalletError,
+  DerivationPath,
+  getDerivationPath,
+  supportsWebUSB,
+  supportsWebHID,
+  supportsWebBluetooth,
+  getAvailableTransports,
+  // Ledger
+  LedgerWalletAdapter,
+  createLedgerAdapter,
+  // Trezor
+  TrezorWalletAdapter,
+  createTrezorAdapter,
+  // Mocks
+  MockLedgerAdapter,
+  MockTrezorAdapter,
+  createMockLedgerAdapter,
+  createMockTrezorAdapter,
+} from './hardware'
+
 // Re-export types from types package for convenience
 export type {
   // Core types
