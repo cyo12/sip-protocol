@@ -158,6 +158,26 @@ export type {
   AuditorViewingKey,
 } from './treasury'
 
+// Compliance
+export { ReportStatus } from './compliance'
+export type {
+  ComplianceRole,
+  AuditScope,
+  AuditorRegistration,
+  DisclosedTransaction,
+  ReportType,
+  ReportFormat,
+  ReportStatusType,
+  ComplianceReport,
+  ReportData,
+  ComplianceConfig,
+  CreateComplianceConfigParams,
+  RegisterAuditorParams,
+  GenerateReportParams,
+  DisclosureRequest,
+  AuditLogEntry,
+} from './compliance'
+
 // Wallet Adapters
 export { WalletErrorCode } from './wallet'
 export type {

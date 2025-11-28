@@ -219,6 +219,26 @@ export type {
   AuditorViewingKey,
 } from '@sip-protocol/types'
 
+// Compliance types
+export { ReportStatus } from '@sip-protocol/types'
+export type {
+  ComplianceRole,
+  AuditScope,
+  AuditorRegistration,
+  DisclosedTransaction,
+  ReportType,
+  ReportFormat,
+  ReportStatusType,
+  ComplianceReport,
+  ReportData,
+  ComplianceConfig,
+  CreateComplianceConfigParams,
+  RegisterAuditorParams,
+  GenerateReportParams,
+  DisclosureRequest,
+  AuditLogEntry,
+} from '@sip-protocol/types'
+
 // Network Adapters
 export {
   OneClickClient,
@@ -344,6 +364,9 @@ export type { CreatePaymentOptions, StablecoinInfo } from './payment'
 
 // DAO Treasury
 export { Treasury } from './treasury'
+
+// Enterprise Compliance
+export { ComplianceManager } from './compliance'
 
 // Wallet Adapters
 export {
