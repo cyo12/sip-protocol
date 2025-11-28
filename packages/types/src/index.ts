@@ -138,6 +138,26 @@ export type {
   TrackedPayment,
 } from './payment'
 
+// Treasury
+export { ProposalStatus } from './treasury'
+export type {
+  TreasuryRole,
+  ProposalStatusType,
+  ProposalType,
+  TreasuryMember,
+  TreasuryConfig,
+  BatchPaymentRecipient,
+  BatchPaymentRequest,
+  ProposalSignature,
+  TreasuryProposal,
+  TreasuryBalance,
+  TreasuryTransaction,
+  CreateTreasuryParams,
+  CreatePaymentProposalParams,
+  CreateBatchProposalParams,
+  AuditorViewingKey,
+} from './treasury'
+
 // Wallet Adapters
 export { WalletErrorCode } from './wallet'
 export type {

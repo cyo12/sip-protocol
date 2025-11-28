@@ -199,6 +199,26 @@ export type {
 // Payment status enum
 export { PaymentStatus } from '@sip-protocol/types'
 
+// Treasury types
+export { ProposalStatus } from '@sip-protocol/types'
+export type {
+  TreasuryRole,
+  ProposalStatusType,
+  ProposalType,
+  TreasuryMember,
+  TreasuryConfig,
+  BatchPaymentRecipient,
+  BatchPaymentRequest,
+  ProposalSignature,
+  TreasuryProposal,
+  TreasuryBalance,
+  TreasuryTransaction,
+  CreateTreasuryParams,
+  CreatePaymentProposalParams,
+  CreateBatchProposalParams,
+  AuditorViewingKey,
+} from '@sip-protocol/types'
+
 // Network Adapters
 export {
   OneClickClient,
@@ -321,6 +341,9 @@ export {
   formatStablecoinAmount,
 } from './payment'
 export type { CreatePaymentOptions, StablecoinInfo } from './payment'
+
+// DAO Treasury
+export { Treasury } from './treasury'
 
 // Wallet Adapters
 export {
