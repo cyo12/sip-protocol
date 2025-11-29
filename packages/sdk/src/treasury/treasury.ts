@@ -722,11 +722,11 @@ function verifySignature(
   const pubKeyHex = publicKey.startsWith('0x') ? publicKey.slice(2) : publicKey
 
   try {
-    // Convert compact signature to secp256k1 Signature
-    const sig = secp256k1.Signature.fromCompact(sigHex)
+    // Convert hex signature to bytes and verify
+    const sigBytes = hexToBytes(sigHex)
     const pubKeyBytes = hexToBytes(pubKeyHex)
 
-    return secp256k1.verify(sig, messageHash, pubKeyBytes)
+    return secp256k1.verify(sigBytes, messageHash, pubKeyBytes)
   } catch {
     return false
   }
