@@ -97,7 +97,9 @@ All 6 supported chain combinations verified working:
 |------|----------|-----------|--------|
 | **Shielded** | ✅ Badge correct | ✅ Completes | PASS |
 | **Public** | ✅ Badge correct | ✅ Shows tx hash | PASS |
-| **Compliant** | ❌ Badge shows "Shielded" | ❌ ViewingKey error | BLOCKED |
+| **Compliant** | ✅ Badge correct | ✅ Completes with viewing key | PASS |
+
+**Note:** Compliant mode fixed on 2024-11-29 (Issue #18)
 
 ### Swap Flow Tests
 
@@ -105,7 +107,7 @@ All 6 supported chain combinations verified working:
 |------|--------|-------|
 | Shielded Swap | ✅ PASS | "No public record exists" message |
 | Public Swap | ✅ PASS | Shows tx hash + explorer link |
-| Compliant Swap | ❌ BLOCKED | ViewingKey validation error |
+| Compliant Swap | ✅ PASS | "Compliant Swap Complete!" with viewing key message |
 | New Swap reset | ✅ PASS | Form clears, wallet stays connected |
 | Quote fetching | ✅ PASS | Real-time quotes work |
 
@@ -438,7 +440,7 @@ DEBUG=sip:* pnpm test -- --grep "should complete SOL → ZEC"
 | #15 | Solana balance shows 0 (wrong address format) | Critical | ✅ Fixed |
 | #16 | Solana address displays as 0x hex instead of Base58 | Critical | ✅ Fixed |
 | #17 | Need real on-chain swap execution (not mock) | Enhancement | Open |
-| #18 | Compliant mode: badge wrong, button wrong, viewingKey error | High | Open |
+| #18 | Compliant mode: badge wrong, button wrong, viewingKey error | High | ✅ Fixed |
 
 ---
 
