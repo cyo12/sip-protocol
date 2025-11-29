@@ -126,6 +126,58 @@ export type {
   ZcashNetworkInfo,
 } from './zcash'
 
+// Payments
+export { PaymentStatus } from './payment'
+export type {
+  StablecoinSymbol,
+  PaymentPurpose,
+  PaymentStatusType,
+  ShieldedPayment,
+  CreatePaymentParams,
+  PaymentReceipt,
+  TrackedPayment,
+} from './payment'
+
+// Treasury
+export { ProposalStatus } from './treasury'
+export type {
+  TreasuryRole,
+  ProposalStatusType,
+  ProposalType,
+  TreasuryMember,
+  TreasuryConfig,
+  BatchPaymentRecipient,
+  BatchPaymentRequest,
+  ProposalSignature,
+  TreasuryProposal,
+  TreasuryBalance,
+  TreasuryTransaction,
+  CreateTreasuryParams,
+  CreatePaymentProposalParams,
+  CreateBatchProposalParams,
+  AuditorViewingKey,
+} from './treasury'
+
+// Compliance
+export { ReportStatus } from './compliance'
+export type {
+  ComplianceRole,
+  AuditScope,
+  AuditorRegistration,
+  DisclosedTransaction,
+  ReportType,
+  ReportFormat,
+  ReportStatusType,
+  ComplianceReport,
+  ReportData,
+  ComplianceConfig,
+  CreateComplianceConfigParams,
+  RegisterAuditorParams,
+  GenerateReportParams,
+  DisclosureRequest,
+  AuditLogEntry,
+} from './compliance'
+
 // Wallet Adapters
 export { WalletErrorCode } from './wallet'
 export type {

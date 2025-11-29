@@ -369,11 +369,14 @@ export class ZcashShieldedService {
       )
     }
 
+    // Get fee from operation result, fall back to params.fee or estimate
+    const fee = operation.result.fee ?? params.fee ?? this.estimateFee(1)
+
     return {
       txid: operation.result.txid,
       operationId,
       amount: params.amount,
-      fee: params.fee ?? 0, // TODO: Get actual fee from operation
+      fee,
       to: params.to,
       from: fromAddress,
       timestamp: Math.floor(Date.now() / 1000),
@@ -559,6 +562,61 @@ export class ZcashShieldedService {
    */
   isTestnet(): boolean {
     return this.client.isTestnet
+  }
+
+  // ─── Fee Estimation ──────────────────────────────────────────────────────────
+
+  /**
+   * ZIP-317 fee constants (in ZEC)
+   * @see https://zips.z.cash/zip-0317
+   */
+  private static readonly ZIP317_MARGINAL_FEE = 0.00005 // 5000 zatoshis per logical action
+  private static readonly ZIP317_GRACE_ACTIONS = 2 // First 2 actions are free
+  private static readonly ZIP317_P2PKH_STANDARD_INPUT_SIZE = 150
+  private static readonly ZIP317_P2PKH_STANDARD_OUTPUT_SIZE = 34
+
+  /**
+   * Estimate transaction fee based on ZIP-317 conventional fee
+   *
+   * The ZIP-317 fee is calculated as:
+   * fee = marginal_fee * max(grace_actions, logical_actions)
+   *
+   * For shielded transactions:
+   * - Each Sapling spend = 1 logical action
+   * - Each Sapling output = 1 logical action
+   * - Each Orchard action = 1 logical action (covers both spend and output)
+   *
+   * @param recipients - Number of recipients (outputs)
+   * @param inputs - Estimated number of input notes (default: 1)
+   * @returns Estimated fee in ZEC
+   *
+   * @example
+   * ```typescript
+   * // Estimate fee for 1 recipient
+   * const fee = service.estimateFee(1)
+   *
+   * // Estimate fee for 3 recipients with 2 input notes
+   * const fee = service.estimateFee(3, 2)
+   * ```
+   */
+  estimateFee(recipients: number = 1, inputs: number = 1): number {
+    // For shielded transactions, logical actions = inputs + outputs
+    // Plus 1 for change output in most cases
+    const logicalActions = inputs + recipients + 1
+
+    // ZIP-317: fee = marginal_fee * max(grace_actions, logical_actions)
+    const billableActions = Math.max(ZcashShieldedService.ZIP317_GRACE_ACTIONS, logicalActions)
+
+    return billableActions * ZcashShieldedService.ZIP317_MARGINAL_FEE
+  }
+
+  /**
+   * Get minimum fee for a shielded transaction
+   *
+   * @returns Minimum fee in ZEC (ZIP-317 with grace actions)
+   */
+  getMinimumFee(): number {
+    return ZcashShieldedService.ZIP317_GRACE_ACTIONS * ZcashShieldedService.ZIP317_MARGINAL_FEE
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────

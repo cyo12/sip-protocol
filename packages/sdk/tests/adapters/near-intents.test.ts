@@ -168,8 +168,12 @@ describe('NEARIntentsAdapter', () => {
     })
 
     it('should throw for unknown chain', () => {
-      expect(() => adapter.mapChainType('bitcoin' as any))
+      expect(() => adapter.mapChainType('unknown_chain' as any))
         .toThrow(ValidationError)
+    })
+
+    it('should map bitcoin to btc', () => {
+      expect(adapter.mapChainType('bitcoin')).toBe('btc')
     })
   })
 

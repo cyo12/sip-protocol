@@ -29,6 +29,7 @@ import {
   isValidCompressedPublicKey,
   isValidPrivateKey,
 } from './validation'
+import { secureWipe, secureWipeAll } from './secure-memory'
 
 /**
  * Generate a new stealth meta-address keypair
@@ -58,19 +59,28 @@ export function generateStealthMetaAddress(
   const spendingPrivateKey = randomBytes(32)
   const viewingPrivateKey = randomBytes(32)
 
-  // Derive public keys
-  const spendingKey = secp256k1.getPublicKey(spendingPrivateKey, true)
-  const viewingKey = secp256k1.getPublicKey(viewingPrivateKey, true)
+  try {
+    // Derive public keys
+    const spendingKey = secp256k1.getPublicKey(spendingPrivateKey, true)
+    const viewingKey = secp256k1.getPublicKey(viewingPrivateKey, true)
 
-  return {
-    metaAddress: {
-      spendingKey: `0x${bytesToHex(spendingKey)}` as HexString,
-      viewingKey: `0x${bytesToHex(viewingKey)}` as HexString,
-      chain,
-      label,
-    },
-    spendingPrivateKey: `0x${bytesToHex(spendingPrivateKey)}` as HexString,
-    viewingPrivateKey: `0x${bytesToHex(viewingPrivateKey)}` as HexString,
+    // Convert to hex strings before wiping buffers
+    const result = {
+      metaAddress: {
+        spendingKey: `0x${bytesToHex(spendingKey)}` as HexString,
+        viewingKey: `0x${bytesToHex(viewingKey)}` as HexString,
+        chain,
+        label,
+      },
+      spendingPrivateKey: `0x${bytesToHex(spendingPrivateKey)}` as HexString,
+      viewingPrivateKey: `0x${bytesToHex(viewingPrivateKey)}` as HexString,
+    }
+
+    return result
+  } finally {
+    // Securely wipe private key buffers
+    // Note: The hex strings returned to caller must be handled securely by them
+    secureWipeAll(spendingPrivateKey, viewingPrivateKey)
   }
 }
 
@@ -128,41 +138,47 @@ export function generateStealthAddress(
 
   // Generate ephemeral keypair
   const ephemeralPrivateKey = randomBytes(32)
-  const ephemeralPublicKey = secp256k1.getPublicKey(ephemeralPrivateKey, true)
 
-  // Parse recipient's keys (remove 0x prefix)
-  const spendingKeyBytes = hexToBytes(recipientMetaAddress.spendingKey.slice(2))
-  const viewingKeyBytes = hexToBytes(recipientMetaAddress.viewingKey.slice(2))
+  try {
+    const ephemeralPublicKey = secp256k1.getPublicKey(ephemeralPrivateKey, true)
 
-  // Compute shared secret: S = r * P (ephemeral private * spending public)
-  const sharedSecretPoint = secp256k1.getSharedSecret(
-    ephemeralPrivateKey,
-    spendingKeyBytes,
-  )
+    // Parse recipient's keys (remove 0x prefix)
+    const spendingKeyBytes = hexToBytes(recipientMetaAddress.spendingKey.slice(2))
+    const viewingKeyBytes = hexToBytes(recipientMetaAddress.viewingKey.slice(2))
 
-  // Hash the shared secret for use as a scalar
-  const sharedSecretHash = sha256(sharedSecretPoint)
+    // Compute shared secret: S = r * P (ephemeral private * spending public)
+    const sharedSecretPoint = secp256k1.getSharedSecret(
+      ephemeralPrivateKey,
+      spendingKeyBytes,
+    )
 
-  // Compute stealth address: A = Q + hash(S)*G
-  // First get hash(S)*G
-  const hashTimesG = secp256k1.getPublicKey(sharedSecretHash, true)
+    // Hash the shared secret for use as a scalar
+    const sharedSecretHash = sha256(sharedSecretPoint)
 
-  // Then add to viewing key Q
-  const viewingKeyPoint = secp256k1.ProjectivePoint.fromHex(viewingKeyBytes)
-  const hashTimesGPoint = secp256k1.ProjectivePoint.fromHex(hashTimesG)
-  const stealthPoint = viewingKeyPoint.add(hashTimesGPoint)
-  const stealthAddressBytes = stealthPoint.toRawBytes(true)
+    // Compute stealth address: A = Q + hash(S)*G
+    // First get hash(S)*G
+    const hashTimesG = secp256k1.getPublicKey(sharedSecretHash, true)
 
-  // Compute view tag (first byte of hash for efficient scanning)
-  const viewTag = sharedSecretHash[0]
+    // Then add to viewing key Q
+    const viewingKeyPoint = secp256k1.ProjectivePoint.fromHex(viewingKeyBytes)
+    const hashTimesGPoint = secp256k1.ProjectivePoint.fromHex(hashTimesG)
+    const stealthPoint = viewingKeyPoint.add(hashTimesGPoint)
+    const stealthAddressBytes = stealthPoint.toRawBytes(true)
 
-  return {
-    stealthAddress: {
-      address: `0x${bytesToHex(stealthAddressBytes)}` as HexString,
-      ephemeralPublicKey: `0x${bytesToHex(ephemeralPublicKey)}` as HexString,
-      viewTag,
-    },
-    sharedSecret: `0x${bytesToHex(sharedSecretHash)}` as HexString,
+    // Compute view tag (first byte of hash for efficient scanning)
+    const viewTag = sharedSecretHash[0]
+
+    return {
+      stealthAddress: {
+        address: `0x${bytesToHex(stealthAddressBytes)}` as HexString,
+        ephemeralPublicKey: `0x${bytesToHex(ephemeralPublicKey)}` as HexString,
+        viewTag,
+      },
+      sharedSecret: `0x${bytesToHex(sharedSecretHash)}` as HexString,
+    }
+  } finally {
+    // Securely wipe ephemeral private key
+    secureWipe(ephemeralPrivateKey)
   }
 }
 
@@ -242,28 +258,38 @@ export function deriveStealthPrivateKey(
   const viewingPrivBytes = hexToBytes(viewingPrivateKey.slice(2))
   const ephemeralPubBytes = hexToBytes(stealthAddress.ephemeralPublicKey.slice(2))
 
-  // Compute shared secret: S = p * R (spending private * ephemeral public)
-  const sharedSecretPoint = secp256k1.getSharedSecret(
-    spendingPrivBytes,
-    ephemeralPubBytes,
-  )
+  try {
+    // Compute shared secret: S = p * R (spending private * ephemeral public)
+    const sharedSecretPoint = secp256k1.getSharedSecret(
+      spendingPrivBytes,
+      ephemeralPubBytes,
+    )
 
-  // Hash the shared secret
-  const sharedSecretHash = sha256(sharedSecretPoint)
+    // Hash the shared secret
+    const sharedSecretHash = sha256(sharedSecretPoint)
 
-  // Derive stealth private key: q + hash(S) mod n
-  // Where q is the viewing private key
-  const viewingScalar = bytesToBigInt(viewingPrivBytes)
-  const hashScalar = bytesToBigInt(sharedSecretHash)
-  const stealthPrivateScalar = (viewingScalar + hashScalar) % secp256k1.CURVE.n
+    // Derive stealth private key: q + hash(S) mod n
+    // Where q is the viewing private key
+    const viewingScalar = bytesToBigInt(viewingPrivBytes)
+    const hashScalar = bytesToBigInt(sharedSecretHash)
+    const stealthPrivateScalar = (viewingScalar + hashScalar) % secp256k1.CURVE.n
 
-  // Convert back to bytes
-  const stealthPrivateKey = bigIntToBytes(stealthPrivateScalar, 32)
+    // Convert back to bytes
+    const stealthPrivateKey = bigIntToBytes(stealthPrivateScalar, 32)
 
-  return {
-    stealthAddress: stealthAddress.address,
-    ephemeralPublicKey: stealthAddress.ephemeralPublicKey,
-    privateKey: `0x${bytesToHex(stealthPrivateKey)}` as HexString,
+    const result = {
+      stealthAddress: stealthAddress.address,
+      ephemeralPublicKey: stealthAddress.ephemeralPublicKey,
+      privateKey: `0x${bytesToHex(stealthPrivateKey)}` as HexString,
+    }
+
+    // Wipe derived key buffer after converting to hex
+    secureWipe(stealthPrivateKey)
+
+    return result
+  } finally {
+    // Securely wipe input private key buffers
+    secureWipeAll(spendingPrivBytes, viewingPrivBytes)
   }
 }
 
@@ -305,33 +331,39 @@ export function checkStealthAddress(
   const viewingPrivBytes = hexToBytes(viewingPrivateKey.slice(2))
   const ephemeralPubBytes = hexToBytes(stealthAddress.ephemeralPublicKey.slice(2))
 
-  // Quick check: compute shared secret and verify view tag first
-  const sharedSecretPoint = secp256k1.getSharedSecret(
-    spendingPrivBytes,
-    ephemeralPubBytes,
-  )
-  const sharedSecretHash = sha256(sharedSecretPoint)
+  try {
+    // Quick check: compute shared secret and verify view tag first
+    const sharedSecretPoint = secp256k1.getSharedSecret(
+      spendingPrivBytes,
+      ephemeralPubBytes,
+    )
+    const sharedSecretHash = sha256(sharedSecretPoint)
 
-  // View tag check (optimization - reject quickly if doesn't match)
-  if (sharedSecretHash[0] !== stealthAddress.viewTag) {
-    return false
+    // View tag check (optimization - reject quickly if doesn't match)
+    if (sharedSecretHash[0] !== stealthAddress.viewTag) {
+      return false
+    }
+
+    // Full check: derive the expected stealth address
+    const viewingScalar = bytesToBigInt(viewingPrivBytes)
+    const hashScalar = bytesToBigInt(sharedSecretHash)
+    const stealthPrivateScalar = (viewingScalar + hashScalar) % secp256k1.CURVE.n
+
+    // Compute expected public key from derived private key
+    const derivedKeyBytes = bigIntToBytes(stealthPrivateScalar, 32)
+    const expectedPubKey = secp256k1.getPublicKey(derivedKeyBytes, true)
+
+    // Wipe derived key immediately after use
+    secureWipe(derivedKeyBytes)
+
+    // Compare with provided stealth address
+    const providedAddress = hexToBytes(stealthAddress.address.slice(2))
+
+    return bytesToHex(expectedPubKey) === bytesToHex(providedAddress)
+  } finally {
+    // Securely wipe input private key buffers
+    secureWipeAll(spendingPrivBytes, viewingPrivBytes)
   }
-
-  // Full check: derive the expected stealth address
-  const viewingScalar = bytesToBigInt(viewingPrivBytes)
-  const hashScalar = bytesToBigInt(sharedSecretHash)
-  const stealthPrivateScalar = (viewingScalar + hashScalar) % secp256k1.CURVE.n
-
-  // Compute expected public key from derived private key
-  const expectedPubKey = secp256k1.getPublicKey(
-    bigIntToBytes(stealthPrivateScalar, 32),
-    true,
-  )
-
-  // Compare with provided stealth address
-  const providedAddress = hexToBytes(stealthAddress.address.slice(2))
-
-  return bytesToHex(expectedPubKey) === bytesToHex(providedAddress)
 }
 
 /**

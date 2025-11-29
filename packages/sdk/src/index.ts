@@ -45,8 +45,8 @@ export {
 export type { SerializedError } from './errors'
 
 // Main client
-export { SIP, createSIP } from './sip'
-export type { SIPConfig, WalletAdapter } from './sip'
+export { SIP, createSIP, createProductionSIP } from './sip'
+export type { SIPConfig, WalletAdapter, ProductionQuote } from './sip'
 
 // Intent creation
 export {
@@ -94,6 +94,14 @@ export {
   hash,
   generateRandomBytes,
 } from './crypto'
+
+// Secure memory handling
+export {
+  secureWipe,
+  secureWipeAll,
+  withSecureBuffer,
+  withSecureBufferSync,
+} from './secure-memory'
 
 // Pedersen Commitments (recommended for new code)
 export {
@@ -178,6 +186,57 @@ export type {
   ChainId,
   HexString,
   Hash,
+  // Payment types
+  StablecoinSymbol,
+  PaymentPurpose,
+  PaymentStatusType,
+  ShieldedPayment,
+  CreatePaymentParams,
+  PaymentReceipt,
+  TrackedPayment,
+} from '@sip-protocol/types'
+
+// Payment status enum
+export { PaymentStatus } from '@sip-protocol/types'
+
+// Treasury types
+export { ProposalStatus } from '@sip-protocol/types'
+export type {
+  TreasuryRole,
+  ProposalStatusType,
+  ProposalType,
+  TreasuryMember,
+  TreasuryConfig,
+  BatchPaymentRecipient,
+  BatchPaymentRequest,
+  ProposalSignature,
+  TreasuryProposal,
+  TreasuryBalance,
+  TreasuryTransaction,
+  CreateTreasuryParams,
+  CreatePaymentProposalParams,
+  CreateBatchProposalParams,
+  AuditorViewingKey,
+} from '@sip-protocol/types'
+
+// Compliance types
+export { ReportStatus } from '@sip-protocol/types'
+export type {
+  ComplianceRole,
+  AuditScope,
+  AuditorRegistration,
+  DisclosedTransaction,
+  ReportType,
+  ReportFormat,
+  ReportStatusType,
+  ComplianceReport,
+  ReportData,
+  ComplianceConfig,
+  CreateComplianceConfigParams,
+  RegisterAuditorParams,
+  GenerateReportParams,
+  DisclosureRequest,
+  AuditLogEntry,
 } from '@sip-protocol/types'
 
 // Network Adapters
@@ -275,6 +334,40 @@ export type {
   ZcashNetworkInfo,
 } from '@sip-protocol/types'
 
+// Private Payments
+export {
+  PaymentBuilder,
+  createShieldedPayment,
+  decryptMemo,
+  trackPayment,
+  isPaymentExpired,
+  getPaymentTimeRemaining,
+  serializePayment,
+  deserializePayment,
+  getPaymentSummary,
+  // Stablecoin registry
+  STABLECOIN_INFO,
+  STABLECOIN_ADDRESSES,
+  STABLECOIN_DECIMALS,
+  getStablecoin,
+  getStablecoinsForChain,
+  isStablecoin,
+  getStablecoinInfo,
+  getSupportedStablecoins,
+  isStablecoinOnChain,
+  getChainsForStablecoin,
+  toStablecoinUnits,
+  fromStablecoinUnits,
+  formatStablecoinAmount,
+} from './payment'
+export type { CreatePaymentOptions, StablecoinInfo } from './payment'
+
+// DAO Treasury
+export { Treasury } from './treasury'
+
+// Enterprise Compliance
+export { ComplianceManager } from './compliance'
+
 // Wallet Adapters
 export {
   BaseWalletAdapter,
@@ -312,6 +405,23 @@ export {
   normalizeAddress,
   getDefaultRpcEndpoint,
   EthereumChainId,
+  // Hardware wallets
+  HardwareErrorCode,
+  HardwareWalletError,
+  DerivationPath,
+  getDerivationPath,
+  supportsWebUSB,
+  supportsWebHID,
+  supportsWebBluetooth,
+  getAvailableTransports,
+  LedgerWalletAdapter,
+  createLedgerAdapter,
+  TrezorWalletAdapter,
+  createTrezorAdapter,
+  MockLedgerAdapter,
+  MockTrezorAdapter,
+  createMockLedgerAdapter,
+  createMockTrezorAdapter,
 } from './wallet'
 
 export type {
@@ -366,4 +476,21 @@ export type {
   EthereumAdapterConfig,
   EthereumChainIdType,
   MockEthereumAdapterConfig,
+  // Hardware wallet types
+  HardwareWalletType,
+  LedgerModel,
+  TrezorModel,
+  HardwareConnectionStatus,
+  TransportType,
+  HardwareDeviceInfo,
+  HardwareWalletConfig,
+  LedgerConfig,
+  TrezorConfig,
+  HardwareSignRequest,
+  HardwareEthereumTx,
+  HardwareSignature,
+  HardwareAccount,
+  HardwareTransport,
+  HardwareErrorCodeType,
+  MockHardwareConfig,
 } from './wallet'

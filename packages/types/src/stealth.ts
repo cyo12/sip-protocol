@@ -58,6 +58,7 @@ export type ChainId =
   | 'arbitrum'
   | 'optimism'
   | 'base'
+  | 'bitcoin'
 
 /**
  * Registry entry for a stealth meta-address

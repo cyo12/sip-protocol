@@ -683,4 +683,108 @@ describe('ZcashShieldedService', () => {
       expect(client).toBeDefined()
     })
   })
+
+  // ─── Fee Estimation ─────────────────────────────────────────────────────────
+
+  describe('estimateFee', () => {
+    it('should estimate fee for single recipient', () => {
+      const fee = service.estimateFee(1)
+      // 1 input + 1 recipient + 1 change = 3 logical actions
+      // max(2, 3) = 3 billable actions
+      // 3 * 0.00005 = 0.00015 ZEC
+      expect(fee).toBeCloseTo(0.00015, 10)
+    })
+
+    it('should estimate fee for multiple recipients', () => {
+      const fee = service.estimateFee(3)
+      // 1 input + 3 recipients + 1 change = 5 logical actions
+      // max(2, 5) = 5 billable actions
+      // 5 * 0.00005 = 0.00025 ZEC
+      expect(fee).toBeCloseTo(0.00025, 10)
+    })
+
+    it('should estimate fee with multiple inputs', () => {
+      const fee = service.estimateFee(1, 3)
+      // 3 inputs + 1 recipient + 1 change = 5 logical actions
+      // max(2, 5) = 5 billable actions
+      // 5 * 0.00005 = 0.00025 ZEC
+      expect(fee).toBeCloseTo(0.00025, 10)
+    })
+
+    it('should use grace actions for small transactions', () => {
+      const fee = service.estimateFee(0, 1)
+      // 1 input + 0 recipients + 1 change = 2 logical actions
+      // max(2, 2) = 2 billable actions (grace)
+      // 2 * 0.00005 = 0.0001 ZEC
+      expect(fee).toBeCloseTo(0.0001, 10)
+    })
+
+    it('should default to 1 recipient and 1 input', () => {
+      const fee = service.estimateFee()
+      // 1 input + 1 recipient + 1 change = 3 logical actions
+      expect(fee).toBeCloseTo(0.00015, 10)
+    })
+  })
+
+  describe('getMinimumFee', () => {
+    it('should return ZIP-317 minimum fee', () => {
+      const minFee = service.getMinimumFee()
+      // 2 grace actions * 0.00005 = 0.0001 ZEC
+      expect(minFee).toBeCloseTo(0.0001, 10)
+    })
+  })
+
+  describe('fee in sendShielded result', () => {
+    beforeEach(async () => {
+      await service.initialize()
+    })
+
+    it('should use fee from operation result when available', async () => {
+      ;(mockClient.waitForOperation as any).mockResolvedValue({
+        id: 'opid-12345',
+        status: 'success',
+        result: { txid: 'txhash123', fee: 0.0002 },
+      })
+
+      const result = await service.sendShielded({
+        to: 'zs1recipient',
+        amount: 0.5,
+      })
+
+      expect(result.fee).toBe(0.0002)
+    })
+
+    it('should use params.fee when operation result has no fee', async () => {
+      ;(mockClient.waitForOperation as any).mockResolvedValue({
+        id: 'opid-12345',
+        status: 'success',
+        result: { txid: 'txhash123' }, // no fee in result
+      })
+
+      const result = await service.sendShielded({
+        to: 'zs1recipient',
+        amount: 0.5,
+        fee: 0.0003,
+      })
+
+      expect(result.fee).toBe(0.0003)
+    })
+
+    it('should estimate fee when neither operation result nor params have fee', async () => {
+      ;(mockClient.waitForOperation as any).mockResolvedValue({
+        id: 'opid-12345',
+        status: 'success',
+        result: { txid: 'txhash123' }, // no fee in result
+      })
+
+      const result = await service.sendShielded({
+        to: 'zs1recipient',
+        amount: 0.5,
+        // no fee in params
+      })
+
+      // Should use estimated fee for 1 recipient
+      expect(result.fee).toBeCloseTo(0.00015, 10)
+    })
+  })
 })

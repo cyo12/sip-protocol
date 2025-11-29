@@ -209,6 +209,8 @@ export type ZcashOperationStatus = 'queued' | 'executing' | 'success' | 'failed'
 export interface ZcashOperationTxResult {
   /** Transaction ID */
   txid: string
+  /** Fee paid in ZEC (available in zcashd 5.0+) */
+  fee?: number
 }
 
 /**
