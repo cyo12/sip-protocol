@@ -311,6 +311,8 @@ viewingKey: generateViewingKey()
 
 ## 🏗️ Architecture
 
+> **Full architecture documentation**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 ### Component Overview
 
 ```
