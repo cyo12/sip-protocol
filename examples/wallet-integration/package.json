@@ -1,0 +1,20 @@
+{
+  "name": "@sip-protocol/example-wallet-integration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wallet integration examples for SIP Protocol",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "phantom": "ts-node phantom-example.ts",
+    "metamask": "ts-node metamask-example.ts",
+    "ledger": "ts-node ledger-example.ts"
+  },
+  "dependencies": {
+    "@sip-protocol/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

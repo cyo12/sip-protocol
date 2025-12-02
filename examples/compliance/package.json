@@ -1,0 +1,17 @@
+{
+  "name": "@sip-protocol/example-compliance",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Compliance and selective disclosure example using SIP viewing keys",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "@sip-protocol/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
