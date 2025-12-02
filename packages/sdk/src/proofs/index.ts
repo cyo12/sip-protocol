@@ -50,3 +50,17 @@ export { MockProofProvider } from './mock'
 // Noir provider (production)
 export { NoirProofProvider } from './noir'
 export type { NoirProviderConfig } from './noir'
+
+// Browser provider (WASM + Web Workers)
+export { BrowserNoirProvider } from './browser'
+export type { BrowserNoirProviderConfig, ProofProgressCallback } from './browser'
+
+// Browser utilities
+export {
+  isBrowser,
+  supportsWebWorkers,
+  supportsSharedArrayBuffer,
+  getBrowserInfo,
+  hexToBytes as browserHexToBytes,
+  bytesToHex as browserBytesToHex,
+} from './browser-utils'

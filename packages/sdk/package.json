@@ -20,15 +20,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.mjs",
+      "require": "./dist/browser.js"
     }
+  },
+  "browser": {
+    "./dist/index.mjs": "./dist/browser.mjs"
   },
   "files": [
     "dist",
     "src"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts src/browser.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/browser.ts --format cjs,esm --dts --watch",
     "lint": "eslint --ext .ts src/",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",

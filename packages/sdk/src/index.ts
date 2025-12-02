@@ -167,7 +167,15 @@ export {
 export {
   MockProofProvider,
   NoirProofProvider,
+  BrowserNoirProvider,
   ProofGenerationError,
+  // Browser utilities
+  isBrowser,
+  supportsWebWorkers,
+  supportsSharedArrayBuffer,
+  getBrowserInfo,
+  browserHexToBytes,
+  browserBytesToHex,
 } from './proofs'
 
 export type {
@@ -179,6 +187,8 @@ export type {
   OracleAttestation,
   ProofResult,
   NoirProviderConfig,
+  BrowserNoirProviderConfig,
+  ProofProgressCallback,
 } from './proofs'
 
 // Oracle attestation (for fulfillment proofs)

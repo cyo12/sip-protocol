@@ -1,0 +1,33 @@
+/**
+ * @sip-protocol/sdk/browser
+ *
+ * Browser-optimized entry point for SIP Protocol SDK.
+ * Use this import when building for browser environments.
+ *
+ * @example
+ * ```typescript
+ * // Browser-specific import
+ * import { BrowserNoirProvider } from '@sip-protocol/sdk/browser'
+ *
+ * const provider = new BrowserNoirProvider()
+ * await provider.initialize()
+ * ```
+ *
+ * @see https://github.com/sip-protocol/sip-protocol/issues/121
+ */
+
+// Re-export everything from main entry
+export * from './index'
+
+// Browser-specific exports (already in main, but explicit here)
+export {
+  BrowserNoirProvider,
+  isBrowser,
+  supportsWebWorkers,
+  supportsSharedArrayBuffer,
+  getBrowserInfo,
+  browserHexToBytes,
+  browserBytesToHex,
+} from './proofs'
+
+export type { BrowserNoirProviderConfig, ProofProgressCallback } from './proofs'
