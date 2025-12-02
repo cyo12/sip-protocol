@@ -183,9 +183,9 @@ export function commit(
   }
 
   // Ensure blinding is in valid range (mod n), and non-zero for valid scalar
-  let rScalar = bytesToBigInt(r) % CURVE_ORDER
+  const rScalar = bytesToBigInt(r) % CURVE_ORDER
   if (rScalar === 0n) {
-    rScalar = 1n // Avoid zero scalar which is invalid
+    throw new Error('CRITICAL: Zero blinding scalar after reduction - investigate RNG')
   }
 
   // C = v*G + r*H
@@ -242,9 +242,9 @@ export function verifyOpening(
 
     // Recompute expected commitment
     const blindingBytes = hexToBytes(blinding.slice(2))
-    let rScalar = bytesToBigInt(blindingBytes) % CURVE_ORDER
+    const rScalar = bytesToBigInt(blindingBytes) % CURVE_ORDER
     if (rScalar === 0n) {
-      rScalar = 1n // Match the commit() behavior
+      throw new Error('CRITICAL: Zero blinding scalar after reduction - investigate RNG')
     }
 
     // Handle edge cases

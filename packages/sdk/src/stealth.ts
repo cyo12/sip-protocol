@@ -408,19 +408,38 @@ export function decodeStealthMetaAddress(encoded: string): StealthMetaAddress {
     )
   }
 
-  // Validate keys
-  if (!isValidCompressedPublicKey(spendingKey)) {
-    throw new ValidationError(
-      'spendingKey must be a valid compressed secp256k1 public key',
-      'encoded.spendingKey'
-    )
-  }
+  // Validate keys based on chain's curve type
+  const chainId = chain as ChainId
+  if (isEd25519Chain(chainId)) {
+    // Ed25519 chains (Solana, NEAR) use 32-byte public keys
+    if (!isValidEd25519PublicKey(spendingKey)) {
+      throw new ValidationError(
+        'spendingKey must be a valid 32-byte ed25519 public key',
+        'encoded.spendingKey'
+      )
+    }
 
-  if (!isValidCompressedPublicKey(viewingKey)) {
-    throw new ValidationError(
-      'viewingKey must be a valid compressed secp256k1 public key',
-      'encoded.viewingKey'
-    )
+    if (!isValidEd25519PublicKey(viewingKey)) {
+      throw new ValidationError(
+        'viewingKey must be a valid 32-byte ed25519 public key',
+        'encoded.viewingKey'
+      )
+    }
+  } else {
+    // secp256k1 chains (Ethereum, etc.) use 33-byte compressed public keys
+    if (!isValidCompressedPublicKey(spendingKey)) {
+      throw new ValidationError(
+        'spendingKey must be a valid compressed secp256k1 public key',
+        'encoded.spendingKey'
+      )
+    }
+
+    if (!isValidCompressedPublicKey(viewingKey)) {
+      throw new ValidationError(
+        'viewingKey must be a valid compressed secp256k1 public key',
+        'encoded.viewingKey'
+      )
+    }
   }
 
   return {
@@ -542,6 +561,21 @@ const ED25519_CHAINS: ChainId[] = ['solana', 'near']
  */
 export function isEd25519Chain(chain: ChainId): boolean {
   return ED25519_CHAINS.includes(chain)
+}
+
+/**
+ * Curve type used for stealth addresses
+ */
+export type StealthCurve = 'secp256k1' | 'ed25519'
+
+/**
+ * Get the curve type used by a chain for stealth addresses
+ *
+ * @param chain - Chain identifier
+ * @returns 'ed25519' for Solana/NEAR, 'secp256k1' for EVM chains
+ */
+export function getCurveForChain(chain: ChainId): StealthCurve {
+  return isEd25519Chain(chain) ? 'ed25519' : 'secp256k1'
 }
 
 /**
@@ -767,8 +801,10 @@ export function generateEd25519StealthAddress(
     // Get ephemeral scalar from private key and reduce mod L
     // ed25519 clamping produces values that may exceed L, so we reduce
     const rawEphemeralScalar = getEd25519Scalar(ephemeralPrivateKey)
-    let ephemeralScalar = rawEphemeralScalar % ED25519_ORDER
-    if (ephemeralScalar === 0n) ephemeralScalar = 1n // Ensure non-zero
+    const ephemeralScalar = rawEphemeralScalar % ED25519_ORDER
+    if (ephemeralScalar === 0n) {
+      throw new Error('CRITICAL: Zero ephemeral scalar after reduction - investigate RNG')
+    }
 
     // Convert spending public key to extended point and multiply by ephemeral scalar
     // S = ephemeral_scalar * P_spend
@@ -780,8 +816,10 @@ export function generateEd25519StealthAddress(
 
     // Derive stealth public key: P_stealth = P_view + hash(S)*G
     // Convert hash to scalar (mod L to ensure it's valid and non-zero)
-    let hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
-    if (hashScalar === 0n) hashScalar = 1n // Ensure non-zero
+    const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
+    if (hashScalar === 0n) {
+      throw new Error('CRITICAL: Zero hash scalar after reduction - investigate hash computation')
+    }
 
     // Compute hash(S) * G
     const hashTimesG = ed25519.ExtendedPoint.BASE.multiply(hashScalar)
@@ -816,10 +854,26 @@ export function generateEd25519StealthAddress(
  * 2. Hash shared secret: h = SHA256(S)
  * 3. Derive stealth private key: s_stealth = s_view + h (mod L)
  *
+ * **IMPORTANT: Derived Key Format**
+ *
+ * The returned `privateKey` is a **raw scalar** in little-endian format, NOT a standard
+ * ed25519 seed. This is because the stealth private key is derived mathematically
+ * (s_view + hash), not generated from a seed.
+ *
+ * To compute the public key from the derived private key:
+ * ```typescript
+ * // CORRECT: Direct scalar multiplication
+ * const scalar = bytesToBigIntLE(hexToBytes(privateKey.slice(2)))
+ * const publicKey = ed25519.ExtendedPoint.BASE.multiply(scalar)
+ *
+ * // WRONG: Do NOT use ed25519.getPublicKey() - it will hash and clamp the input,
+ * // producing a different (incorrect) public key
+ * ```
+ *
  * @param stealthAddress - The stealth address to recover
  * @param spendingPrivateKey - Recipient's spending private key
  * @param viewingPrivateKey - Recipient's viewing private key
- * @returns Recovery data including derived private key
+ * @returns Recovery data including derived private key (raw scalar, little-endian)
  * @throws {ValidationError} If any input is invalid
  */
 export function deriveEd25519StealthPrivateKey(
@@ -853,8 +907,10 @@ export function deriveEd25519StealthPrivateKey(
   try {
     // Get spending scalar from private key and reduce mod L
     const rawSpendingScalar = getEd25519Scalar(spendingPrivBytes)
-    let spendingScalar = rawSpendingScalar % ED25519_ORDER
-    if (spendingScalar === 0n) spendingScalar = 1n
+    const spendingScalar = rawSpendingScalar % ED25519_ORDER
+    if (spendingScalar === 0n) {
+      throw new Error('CRITICAL: Zero spending scalar after reduction - investigate key derivation')
+    }
 
     // Compute shared secret: S = spending_scalar * R
     const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralPubBytes)
@@ -865,14 +921,20 @@ export function deriveEd25519StealthPrivateKey(
 
     // Get viewing scalar from private key and reduce mod L
     const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
-    let viewingScalar = rawViewingScalar % ED25519_ORDER
-    if (viewingScalar === 0n) viewingScalar = 1n
+    const viewingScalar = rawViewingScalar % ED25519_ORDER
+    if (viewingScalar === 0n) {
+      throw new Error('CRITICAL: Zero viewing scalar after reduction - investigate key derivation')
+    }
 
     // Derive stealth private key: s_stealth = s_view + hash(S) mod L
-    let hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
-    if (hashScalar === 0n) hashScalar = 1n
-    let stealthPrivateScalar = (viewingScalar + hashScalar) % ED25519_ORDER
-    if (stealthPrivateScalar === 0n) stealthPrivateScalar = 1n
+    const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
+    if (hashScalar === 0n) {
+      throw new Error('CRITICAL: Zero hash scalar after reduction - investigate hash computation')
+    }
+    const stealthPrivateScalar = (viewingScalar + hashScalar) % ED25519_ORDER
+    if (stealthPrivateScalar === 0n) {
+      throw new Error('CRITICAL: Zero stealth scalar after reduction - investigate key derivation')
+    }
 
     // Convert back to bytes (little-endian for ed25519)
     // Note: We need to store this as a seed that will produce this scalar
@@ -936,8 +998,10 @@ export function checkEd25519StealthAddress(
   try {
     // Get spending scalar from private key and reduce mod L
     const rawSpendingScalar = getEd25519Scalar(spendingPrivBytes)
-    let spendingScalar = rawSpendingScalar % ED25519_ORDER
-    if (spendingScalar === 0n) spendingScalar = 1n
+    const spendingScalar = rawSpendingScalar % ED25519_ORDER
+    if (spendingScalar === 0n) {
+      throw new Error('CRITICAL: Zero spending scalar after reduction - investigate key derivation')
+    }
 
     // Compute shared secret: S = spending_scalar * R
     const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralPubBytes)
@@ -953,13 +1017,19 @@ export function checkEd25519StealthAddress(
 
     // Full check: derive the expected stealth address
     const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
-    let viewingScalar = rawViewingScalar % ED25519_ORDER
-    if (viewingScalar === 0n) viewingScalar = 1n
+    const viewingScalar = rawViewingScalar % ED25519_ORDER
+    if (viewingScalar === 0n) {
+      throw new Error('CRITICAL: Zero viewing scalar after reduction - investigate key derivation')
+    }
 
-    let hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
-    if (hashScalar === 0n) hashScalar = 1n
-    let stealthPrivateScalar = (viewingScalar + hashScalar) % ED25519_ORDER
-    if (stealthPrivateScalar === 0n) stealthPrivateScalar = 1n
+    const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
+    if (hashScalar === 0n) {
+      throw new Error('CRITICAL: Zero hash scalar after reduction - investigate hash computation')
+    }
+    const stealthPrivateScalar = (viewingScalar + hashScalar) % ED25519_ORDER
+    if (stealthPrivateScalar === 0n) {
+      throw new Error('CRITICAL: Zero stealth scalar after reduction - investigate key derivation')
+    }
 
     // Compute expected public key from derived scalar
     const expectedPubKey = ed25519.ExtendedPoint.BASE.multiply(stealthPrivateScalar)
@@ -973,4 +1043,326 @@ export function checkEd25519StealthAddress(
     // Securely wipe input private key buffers
     secureWipeAll(spendingPrivBytes, viewingPrivBytes)
   }
+}
+
+// ─── Base58 Encoding for Solana ────────────────────────────────────────────────
+
+/** Base58 alphabet (Bitcoin/Solana standard) */
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+/**
+ * Encode bytes to base58 string
+ * Used for Solana address encoding
+ */
+function bytesToBase58(bytes: Uint8Array): string {
+  // Count leading zeros
+  let leadingZeros = 0
+  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
+    leadingZeros++
+  }
+
+  // Convert bytes to bigint
+  let value = 0n
+  for (const byte of bytes) {
+    value = value * 256n + BigInt(byte)
+  }
+
+  // Convert to base58
+  let result = ''
+  while (value > 0n) {
+    const remainder = value % 58n
+    value = value / 58n
+    result = BASE58_ALPHABET[Number(remainder)] + result
+  }
+
+  // Add leading '1's for each leading zero byte
+  return '1'.repeat(leadingZeros) + result
+}
+
+/**
+ * Decode base58 string to bytes
+ * Used for Solana address validation
+ */
+function base58ToBytes(str: string): Uint8Array {
+  // Count leading '1's (they represent leading zero bytes)
+  let leadingOnes = 0
+  for (let i = 0; i < str.length && str[i] === '1'; i++) {
+    leadingOnes++
+  }
+
+  // Convert from base58 to bigint
+  let value = 0n
+  for (const char of str) {
+    const index = BASE58_ALPHABET.indexOf(char)
+    if (index === -1) {
+      throw new ValidationError(`Invalid base58 character: ${char}`, 'address')
+    }
+    value = value * 58n + BigInt(index)
+  }
+
+  // Convert bigint to bytes
+  const bytes: number[] = []
+  while (value > 0n) {
+    bytes.unshift(Number(value % 256n))
+    value = value / 256n
+  }
+
+  // Add leading zeros
+  const result = new Uint8Array(leadingOnes + bytes.length)
+  for (let i = 0; i < leadingOnes; i++) {
+    result[i] = 0
+  }
+  for (let i = 0; i < bytes.length; i++) {
+    result[leadingOnes + i] = bytes[i]
+  }
+
+  return result
+}
+
+// ─── Solana Address Derivation ─────────────────────────────────────────────────
+
+/**
+ * Convert an ed25519 public key (hex) to a Solana address (base58)
+ *
+ * Solana addresses are base58-encoded 32-byte ed25519 public keys.
+ *
+ * @param publicKey - 32-byte ed25519 public key as hex string (with 0x prefix)
+ * @returns Base58-encoded Solana address
+ * @throws {ValidationError} If public key is invalid
+ *
+ * @example
+ * ```typescript
+ * const { stealthAddress } = generateEd25519StealthAddress(metaAddress)
+ * const solanaAddress = ed25519PublicKeyToSolanaAddress(stealthAddress.address)
+ * // Returns: "7Vbmv1jt4vyuqBZcpYPpnVhrqVe5e6ZPBJCyqLqzQPvN" (example)
+ * ```
+ */
+export function ed25519PublicKeyToSolanaAddress(publicKey: HexString): string {
+  // Validate input
+  if (!isValidHex(publicKey)) {
+    throw new ValidationError(
+      'publicKey must be a valid hex string with 0x prefix',
+      'publicKey'
+    )
+  }
+
+  if (!isValidEd25519PublicKey(publicKey)) {
+    throw new ValidationError(
+      'publicKey must be 32 bytes (64 hex characters)',
+      'publicKey'
+    )
+  }
+
+  // Convert hex to bytes (remove 0x prefix)
+  const publicKeyBytes = hexToBytes(publicKey.slice(2))
+
+  // Encode as base58
+  return bytesToBase58(publicKeyBytes)
+}
+
+/**
+ * Validate a Solana address format
+ *
+ * Checks that the address:
+ * - Is a valid base58 string
+ * - Decodes to exactly 32 bytes (ed25519 public key size)
+ *
+ * @param address - Base58-encoded Solana address
+ * @returns true if valid, false otherwise
+ *
+ * @example
+ * ```typescript
+ * isValidSolanaAddress('7Vbmv1jt4vyuqBZcpYPpnVhrqVe5e6ZPBJCyqLqzQPvN') // true
+ * isValidSolanaAddress('invalid') // false
+ * ```
+ */
+export function isValidSolanaAddress(address: string): boolean {
+  if (typeof address !== 'string' || address.length === 0) {
+    return false
+  }
+
+  // Solana addresses are typically 32-44 characters
+  if (address.length < 32 || address.length > 44) {
+    return false
+  }
+
+  try {
+    const decoded = base58ToBytes(address)
+    // Valid Solana address is exactly 32 bytes
+    return decoded.length === 32
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Convert a Solana address (base58) back to ed25519 public key (hex)
+ *
+ * @param address - Base58-encoded Solana address
+ * @returns 32-byte ed25519 public key as hex string (with 0x prefix)
+ * @throws {ValidationError} If address is invalid
+ *
+ * @example
+ * ```typescript
+ * const publicKey = solanaAddressToEd25519PublicKey('7Vbmv1jt4vyuqBZcpYPpnVhrqVe5e6ZPBJCyqLqzQPvN')
+ * // Returns: "0x..." (64 hex characters)
+ * ```
+ */
+export function solanaAddressToEd25519PublicKey(address: string): HexString {
+  if (!isValidSolanaAddress(address)) {
+    throw new ValidationError(
+      'Invalid Solana address format',
+      'address'
+    )
+  }
+
+  const decoded = base58ToBytes(address)
+  return `0x${bytesToHex(decoded)}` as HexString
+}
+
+// ─── NEAR Address Derivation ────────────────────────────────────────────────────
+
+/**
+ * Convert ed25519 public key to NEAR implicit account address
+ *
+ * NEAR implicit accounts are lowercase hex-encoded ed25519 public keys (64 characters).
+ * No prefix, just raw 32 bytes as lowercase hex.
+ *
+ * @param publicKey - 32-byte ed25519 public key as hex string (with 0x prefix)
+ * @returns NEAR implicit account address (64 lowercase hex characters, no prefix)
+ * @throws {ValidationError} If public key is invalid
+ *
+ * @example
+ * ```typescript
+ * const { stealthAddress } = generateEd25519StealthAddress(metaAddress)
+ * const nearAddress = ed25519PublicKeyToNearAddress(stealthAddress.address)
+ * // Returns: "ab12cd34..." (64 hex chars)
+ * ```
+ */
+export function ed25519PublicKeyToNearAddress(publicKey: HexString): string {
+  // Validate input
+  if (!isValidHex(publicKey)) {
+    throw new ValidationError(
+      'publicKey must be a valid hex string with 0x prefix',
+      'publicKey'
+    )
+  }
+
+  if (!isValidEd25519PublicKey(publicKey)) {
+    throw new ValidationError(
+      'publicKey must be 32 bytes (64 hex characters)',
+      'publicKey'
+    )
+  }
+
+  // NEAR implicit accounts are lowercase hex without 0x prefix
+  return publicKey.slice(2).toLowerCase()
+}
+
+/**
+ * Convert NEAR implicit account address back to ed25519 public key
+ *
+ * @param address - NEAR implicit account address (64 hex characters)
+ * @returns ed25519 public key as HexString (with 0x prefix)
+ * @throws {ValidationError} If address is invalid
+ *
+ * @example
+ * ```typescript
+ * const publicKey = nearAddressToEd25519PublicKey("ab12cd34...")
+ * // Returns: "0xab12cd34..."
+ * ```
+ */
+export function nearAddressToEd25519PublicKey(address: string): HexString {
+  if (!isValidNearImplicitAddress(address)) {
+    throw new ValidationError(
+      'Invalid NEAR implicit address format',
+      'address'
+    )
+  }
+
+  return `0x${address.toLowerCase()}` as HexString
+}
+
+/**
+ * Validate a NEAR implicit account address
+ *
+ * NEAR implicit accounts are:
+ * - Exactly 64 lowercase hex characters
+ * - No prefix (no "0x")
+ * - Represent a 32-byte ed25519 public key
+ *
+ * @param address - Address to validate
+ * @returns true if valid NEAR implicit account address
+ *
+ * @example
+ * ```typescript
+ * isValidNearImplicitAddress("ab12cd34ef...") // true (64 hex chars)
+ * isValidNearImplicitAddress("0xab12...")     // false (has prefix)
+ * isValidNearImplicitAddress("alice.near")   // false (named account)
+ * isValidNearImplicitAddress("AB12CD...")    // false (uppercase)
+ * ```
+ */
+export function isValidNearImplicitAddress(address: string): boolean {
+  // Must be a string
+  if (typeof address !== 'string' || address.length === 0) {
+    return false
+  }
+
+  // Must be exactly 64 characters (32 bytes as hex)
+  if (address.length !== 64) {
+    return false
+  }
+
+  // Must be lowercase hex only (no 0x prefix)
+  return /^[0-9a-f]{64}$/.test(address)
+}
+
+/**
+ * Check if a string is a valid NEAR account ID (named or implicit)
+ *
+ * Supports both:
+ * - Named accounts: alice.near, bob.testnet
+ * - Implicit accounts: 64 hex characters
+ *
+ * @param accountId - Account ID to validate
+ * @returns true if valid NEAR account ID
+ *
+ * @example
+ * ```typescript
+ * isValidNearAccountId("alice.near")     // true
+ * isValidNearAccountId("bob.testnet")    // true
+ * isValidNearAccountId("ab12cd34...")    // true (64 hex chars)
+ * isValidNearAccountId("ALICE.near")     // false (uppercase)
+ * isValidNearAccountId("a")              // false (too short)
+ * ```
+ */
+export function isValidNearAccountId(accountId: string): boolean {
+  // Must be a string
+  if (typeof accountId !== 'string' || accountId.length === 0) {
+    return false
+  }
+
+  // Check if it's a valid implicit account (64 hex chars)
+  if (isValidNearImplicitAddress(accountId)) {
+    return true
+  }
+
+  // Named accounts: 2-64 characters, lowercase alphanumeric with . _ -
+  // Must start and end with alphanumeric
+  if (accountId.length < 2 || accountId.length > 64) {
+    return false
+  }
+
+  // NEAR account ID pattern
+  const nearAccountPattern = /^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$/
+  if (!nearAccountPattern.test(accountId)) {
+    return false
+  }
+
+  // Cannot have consecutive dots
+  if (accountId.includes('..')) {
+    return false
+  }
+
+  return true
 }
