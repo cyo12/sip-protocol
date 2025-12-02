@@ -181,6 +181,47 @@ export type {
   NoirProviderConfig,
 } from './proofs'
 
+// Oracle attestation (for fulfillment proofs)
+export {
+  // Verification functions
+  verifyAttestation,
+  verifyOracleSignature,
+  signAttestationMessage,
+  deriveOracleId,
+  // Registry management
+  createOracleRegistry,
+  addOracle,
+  removeOracle,
+  updateOracleStatus,
+  getActiveOracles,
+  hasEnoughOracles,
+  // Serialization
+  serializeAttestationMessage,
+  deserializeAttestationMessage,
+  computeAttestationHash,
+  getChainNumericId,
+  // Constants
+  ORACLE_DOMAIN,
+  ATTESTATION_VERSION,
+  DEFAULT_THRESHOLD,
+  DEFAULT_TOTAL_ORACLES,
+  CHAIN_NUMERIC_IDS,
+} from './oracle'
+
+export type {
+  OracleId,
+  OracleStatus,
+  OracleInfo,
+  OracleAttestationMessage,
+  OracleSignature,
+  SignedOracleAttestation,
+  OracleRegistry,
+  OracleRegistryConfig,
+  AttestationRequest,
+  AttestationResult,
+  VerificationResult,
+} from './oracle'
+
 // Re-export types for convenience
 export {
   PrivacyLevel,
