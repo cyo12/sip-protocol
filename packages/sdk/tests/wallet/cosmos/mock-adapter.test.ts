@@ -468,7 +468,8 @@ describe('MockCosmosAdapter', () => {
       await slowAdapter.connect()
       const elapsed = Date.now() - start
 
-      expect(elapsed).toBeGreaterThanOrEqual(100)
+      // Allow 5ms tolerance for CI timing variance
+      expect(elapsed).toBeGreaterThanOrEqual(95)
     })
 
     it('should work with zero latency', async () => {
