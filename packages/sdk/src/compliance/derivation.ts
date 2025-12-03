@@ -207,15 +207,12 @@ export class AuditorKeyDerivation {
       auditorType,                     // auditorType (non-hardened)
     ]
 
-    // Derive key through the path
-    let currentKey: Uint8Array
-    let chainCode: Uint8Array
+    // Derive key through the path - Initialize master key and chain code from seed
+    const masterData = hmac(sha512, utf8ToBytes('SIP-MASTER-SEED'), masterSeed)
+    let currentKey: Uint8Array = new Uint8Array(masterData.slice(0, 32))
+    let chainCode: Uint8Array = new Uint8Array(masterData.slice(32, 64))
 
     try {
-      // Initialize master key and chain code from seed
-      const masterData = hmac(sha512, utf8ToBytes('SIP-MASTER-SEED'), masterSeed)
-      currentKey = new Uint8Array(masterData.slice(0, 32))
-      chainCode = new Uint8Array(masterData.slice(32, 64))
 
       // Derive through each level
       for (let i = 0; i < indices.length; i++) {
