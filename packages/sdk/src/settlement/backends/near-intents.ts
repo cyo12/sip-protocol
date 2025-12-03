@@ -448,6 +448,17 @@ export class NEARIntentsBackend implements SettlementBackend {
       )
     }
 
+    // Validate slippageTolerance bounds (0-10000 basis points = 0-100%)
+    if (params.slippageTolerance !== undefined) {
+      if (params.slippageTolerance < 0 || params.slippageTolerance > 10000) {
+        throw new ValidationError(
+          'slippageTolerance must be between 0-10000 basis points (0-100%)',
+          'slippageTolerance',
+          { provided: params.slippageTolerance, validRange: '0-10000' }
+        )
+      }
+    }
+
     // Validate supported chains
     if (!this.capabilities.supportedSourceChains.includes(params.fromChain)) {
       throw new ValidationError(

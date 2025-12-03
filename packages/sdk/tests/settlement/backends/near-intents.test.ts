@@ -106,6 +106,79 @@ describe('NEARIntentsBackend', () => {
 
       await expect(backend.getQuote(params)).rejects.toThrow('not supported')
     })
+
+    it('should reject slippageTolerance greater than 10000 (100%)', async () => {
+      const params: QuoteParams = {
+        fromChain: 'ethereum',
+        toChain: 'solana',
+        fromToken: 'USDC',
+        toToken: 'SOL',
+        amount: BigInt(1000000),
+        privacyLevel: PrivacyLevel.TRANSPARENT,
+        senderAddress: '0x1234567890123456789012345678901234567890',
+        slippageTolerance: 20000, // 200% - invalid
+      }
+
+      await expect(backend.getQuote(params)).rejects.toThrow('slippageTolerance must be between 0-10000')
+    })
+
+    it('should reject negative slippageTolerance', async () => {
+      const params: QuoteParams = {
+        fromChain: 'ethereum',
+        toChain: 'solana',
+        fromToken: 'USDC',
+        toToken: 'SOL',
+        amount: BigInt(1000000),
+        privacyLevel: PrivacyLevel.TRANSPARENT,
+        senderAddress: '0x1234567890123456789012345678901234567890',
+        slippageTolerance: -100, // Negative - invalid
+      }
+
+      await expect(backend.getQuote(params)).rejects.toThrow('slippageTolerance must be between 0-10000')
+    })
+
+    it('should accept valid slippageTolerance values', async () => {
+      // Valid slippageTolerance values should pass validation
+      // (will fail later on API call, but validation should pass)
+      const params: QuoteParams = {
+        fromChain: 'ethereum',
+        toChain: 'solana',
+        fromToken: 'USDC',
+        toToken: 'SOL',
+        amount: BigInt(1000000),
+        privacyLevel: PrivacyLevel.TRANSPARENT,
+        senderAddress: '0x1234567890123456789012345678901234567890',
+        slippageTolerance: 500, // 5% - valid
+      }
+
+      // This should pass validation but fail on API call (no network)
+      // We just want to verify slippage validation passes
+      try {
+        await backend.getQuote(params)
+      } catch (error: any) {
+        // Should NOT be a slippage validation error
+        expect(error.message).not.toContain('slippageTolerance')
+      }
+    })
+
+    it('should accept boundary slippageTolerance values', async () => {
+      const params: QuoteParams = {
+        fromChain: 'ethereum',
+        toChain: 'solana',
+        fromToken: 'USDC',
+        toToken: 'SOL',
+        amount: BigInt(1000000),
+        privacyLevel: PrivacyLevel.TRANSPARENT,
+        senderAddress: '0x1234567890123456789012345678901234567890',
+        slippageTolerance: 10000, // 100% - edge case, should be valid
+      }
+
+      try {
+        await backend.getQuote(params)
+      } catch (error: any) {
+        expect(error.message).not.toContain('slippageTolerance')
+      }
+    })
   })
 
   describe('executeSwap', () => {
