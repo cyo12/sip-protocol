@@ -54,7 +54,7 @@ export function generateStealthMetaAddress(
   // Validate chain
   if (!isValidChainId(chain)) {
     throw new ValidationError(
-      `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base`,
+      `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base, bitcoin, aptos, sui, cosmos, osmosis, injective, celestia, sei, dydx`,
       'chain'
     )
   }
@@ -554,7 +554,7 @@ const ED25519_ORDER = 2n ** 252n + 27742317777372353535851937790883648493n
 /**
  * Chains that use ed25519 for stealth addresses
  */
-const ED25519_CHAINS: ChainId[] = ['solana', 'near']
+const ED25519_CHAINS: ChainId[] = ['solana', 'near', 'aptos', 'sui']
 
 /**
  * Check if a chain uses ed25519 for stealth addresses
@@ -726,7 +726,7 @@ export function generateEd25519StealthMetaAddress(
   // Validate chain
   if (!isValidChainId(chain)) {
     throw new ValidationError(
-      `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base`,
+      `invalid chain '${chain}', must be one of: solana, ethereum, near, zcash, polygon, arbitrum, optimism, base, bitcoin, aptos, sui, cosmos, osmosis, injective, celestia, sei, dydx`,
       'chain'
     )
   }

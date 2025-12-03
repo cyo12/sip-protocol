@@ -200,6 +200,14 @@ const CHAIN_BLOCKCHAIN_MAP: Record<ChainId, string> = {
   optimism: 'evm',
   base: 'evm',
   bitcoin: 'bitcoin',
+  aptos: 'aptos',
+  sui: 'sui',
+  cosmos: 'cosmos',
+  osmosis: 'cosmos',
+  injective: 'cosmos',
+  celestia: 'cosmos',
+  sei: 'cosmos',
+  dydx: 'cosmos',
 }
 
 /**

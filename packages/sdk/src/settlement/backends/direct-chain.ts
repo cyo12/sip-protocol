@@ -108,6 +108,14 @@ const DEFAULT_GAS_FEES: Record<ChainId, bigint> = {
   optimism: 21000000n, // 21k gas * 0.001 gwei ETH = 21 gwei = 21e6 wei
   base: 2100000000n, // 21k gas * 0.1 gwei ETH = 2100 gwei = 2.1e9 wei
   bitcoin: 10000n, // 10000 sats = 0.0001 BTC (estimate for 1 input, 2 outputs)
+  aptos: 100n, // 0.000001 APT in octas (gas units)
+  sui: 1000n, // 0.000001 SUI in MIST
+  cosmos: 5000n, // 0.005 ATOM in uatom
+  osmosis: 5000n, // 0.005 OSMO in uosmo
+  injective: 5000n, // 0.000005 INJ in inj (18 decimals)
+  celestia: 5000n, // 0.005 TIA in utia
+  sei: 5000n, // 0.005 SEI in usei
+  dydx: 5000n, // 0.000005 DYDX in dydx (18 decimals)
 }
 
 /**

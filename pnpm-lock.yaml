@@ -62,6 +62,9 @@ importers:
       '@noir-lang/types':
         specifier: 1.0.0-beta.16
         version: 1.0.0-beta.16
+      '@scure/base':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@sip-protocol/types':
         specifier: ^0.1.1
         version: link:../types
@@ -1164,6 +1167,10 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@scure/base@2.0.0:
+    resolution: {integrity: sha512-3E1kpuZginKkek01ovG8krQ0Z44E3DHPjc5S2rjJw9lZn3KSQOs8S7wqikF/AH7iRanHypj85uGyxk0XAyC37w==}
+    dev: false
 
   /@shikijs/engine-oniguruma@3.15.0:
     resolution: {integrity: sha512-HnqFsV11skAHvOArMZdLBZZApRSYS4LSztk2K3016Y9VCyZISnlYUYsL2hzlS7tPqKHvNqmI5JSUJZprXloMvA==}

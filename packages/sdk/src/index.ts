@@ -93,6 +93,34 @@ export {
 
 export type { StealthCurve } from './stealth'
 
+// Move blockchain stealth addresses (Aptos)
+export {
+  AptosStealthService,
+  generateAptosStealthAddress,
+  deriveAptosStealthPrivateKey,
+  checkAptosStealthAddress,
+  ed25519PublicKeyToAptosAddress,
+  aptosAddressToAuthKey,
+  isValidAptosAddress,
+} from './move'
+
+export type { AptosStealthResult } from './move'
+
+// Cosmos blockchain stealth addresses
+export {
+  CosmosStealthService,
+  generateCosmosStealthMetaAddress,
+  generateCosmosStealthAddress,
+  stealthKeyToCosmosAddress,
+  isValidCosmosAddress,
+  CHAIN_PREFIXES as COSMOS_CHAIN_PREFIXES,
+} from './cosmos'
+
+export type {
+  CosmosChainId,
+  CosmosStealthResult,
+} from './cosmos'
+
 // Privacy utilities
 export {
   getPrivacyConfig,
@@ -452,6 +480,29 @@ export type {
   ZcashBlockchainInfo,
   ZcashNetworkInfo,
 } from '@sip-protocol/types'
+
+// Bitcoin Taproot (BIP-340/341)
+export {
+  // BIP-340 Schnorr signatures
+  schnorrSign,
+  schnorrVerify,
+  schnorrSignHex,
+  schnorrVerifyHex,
+  // BIP-341 Taproot
+  getXOnlyPublicKey,
+  computeTweakedKey,
+  createTaprootOutput,
+  createKeySpendOnlyOutput,
+  taprootAddress,
+  decodeTaprootAddress,
+  isValidTaprootAddress,
+} from './bitcoin'
+
+export type {
+  TaprootOutput,
+  TapScript,
+  BitcoinNetwork,
+} from './bitcoin'
 
 // Private Payments
 export {

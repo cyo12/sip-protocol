@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-03
+
+### Added - M12: Multi-Chain Expansion
+
+#### Bitcoin Support
+- **Taproot (BIP-340/341)** - Schnorr signatures, x-only pubkeys, Bech32m addresses
+- **Silent Payments (BIP-352)** - Privacy-preserving Bitcoin payments without interaction
+- **Bitcoin wallet adapter** - Unisat integration with PSBT signing, BIP-322 messages
+
+#### Cosmos Ecosystem
+- **Cosmos stealth addresses** - secp256k1 with bech32 encoding for 6 chains
+- **IBC stealth transfers** - Cross-chain privacy via IBC memo field
+- **Cosmos wallet adapter** - Keplr integration with Amino/Direct signing
+- **Supported chains**: Cosmos Hub, Osmosis, Injective, Celestia, Sei, dYdX
+
+#### Move Chains (Aptos/Sui)
+- **Aptos stealth addresses** - ed25519 with SHA3-256 address derivation
+- **Sui stealth addresses** - ed25519 with BLAKE2b-256 address derivation
+- **Move wallet adapters** - Petra (Aptos) and Sui Wallet integration
+
+### Changed
+- 38 new source files added
+- 208 new tests (1,817 → 2,025 total)
+- 7 new chain integrations
+- 4 new wallet adapters
+
+### Issues Closed
+- #152: Bitcoin Silent Payments (BIP-352)
+- #153: Taproot support for Bitcoin
+- #154: Bitcoin wallet adapter
+- #155: Cosmos stealth addresses
+- #156: Cosmos IBC stealth transfers
+- #157: Cosmos wallet adapter
+- #158: Aptos stealth addresses
+- #159: Sui stealth addresses
+- #160: Move wallet adapters
+
 ## [0.3.2] - 2025-12-03
 
 ### Security
