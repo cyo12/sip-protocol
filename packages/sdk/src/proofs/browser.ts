@@ -36,7 +36,10 @@ import {
   hexToBytes,
   bytesToHex,
   getBrowserInfo,
+  getMobileDeviceInfo,
+  checkMobileWASMCompatibility,
 } from './browser-utils'
+import type { MobileDeviceInfo, MobileWASMCompatibility } from './browser-utils'
 
 // Import Noir JS (works in browser with WASM)
 import { Noir } from '@noir-lang/noir_js'
@@ -86,9 +89,23 @@ export interface BrowserNoirProviderConfig {
 
   /**
    * Maximum time for proof generation before timeout (ms)
-   * @default 60000 (60 seconds)
+   * @default 60000 (60 seconds), mobile: 120000 (2 minutes)
    */
   timeout?: number
+
+  /**
+   * Enable mobile-optimized mode (auto-detected by default)
+   * When true, adjusts memory usage and timeout for mobile devices
+   * @default auto-detected
+   */
+  mobileMode?: boolean
+
+  /**
+   * Allow initialization even with poor compatibility score
+   * Use with caution on mobile devices
+   * @default false
+   */
+  forceInitialize?: boolean
 }
 
 /**
@@ -127,6 +144,10 @@ export class BrowserNoirProvider implements ProofProvider {
   private _isReady = false
   private config: Required<BrowserNoirProviderConfig>
 
+  // Mobile device info (cached)
+  private deviceInfo: MobileDeviceInfo | null = null
+  private wasmCompatibility: MobileWASMCompatibility | null = null
+
   // Circuit instances
   private fundingNoir: Noir | null = null
   private fundingBackend: UltraHonkBackend | null = null
@@ -143,11 +164,20 @@ export class BrowserNoirProvider implements ProofProvider {
   > = new Map()
 
   constructor(config: BrowserNoirProviderConfig = {}) {
+    // Detect mobile environment
+    this.deviceInfo = getMobileDeviceInfo()
+    const isMobile = this.deviceInfo.isMobile
+
+    // Set mobile-appropriate defaults
+    const defaultTimeout = isMobile ? 120000 : 60000 // 2 min for mobile, 1 min for desktop
+
     this.config = {
       useWorker: config.useWorker ?? true,
       verbose: config.verbose ?? false,
       oraclePublicKey: config.oraclePublicKey ?? undefined,
-      timeout: config.timeout ?? 60000,
+      timeout: config.timeout ?? defaultTimeout,
+      mobileMode: config.mobileMode ?? isMobile,
+      forceInitialize: config.forceInitialize ?? false,
     } as Required<BrowserNoirProviderConfig>
 
     // Warn if not in browser
@@ -156,6 +186,11 @@ export class BrowserNoirProvider implements ProofProvider {
         '[BrowserNoirProvider] Not running in browser environment. ' +
           'Consider using NoirProofProvider for Node.js.'
       )
+    }
+
+    // Log mobile detection in verbose mode
+    if (this.config.verbose && this.deviceInfo) {
+      console.log('[BrowserNoirProvider] Device info:', this.deviceInfo)
     }
   }
 
@@ -200,6 +235,83 @@ export class BrowserNoirProvider implements ProofProvider {
   }
 
   /**
+   * Get detailed mobile device information
+   */
+  static getMobileInfo(): MobileDeviceInfo {
+    return getMobileDeviceInfo()
+  }
+
+  /**
+   * Check mobile WASM compatibility
+   *
+   * Returns detailed compatibility information including:
+   * - Feature support (WASM, SharedArrayBuffer, Workers, SIMD)
+   * - Compatibility score (0-100)
+   * - Issues and recommendations
+   *
+   * @example
+   * ```typescript
+   * const compat = BrowserNoirProvider.checkMobileCompatibility()
+   * if (compat.score < 70) {
+   *   console.warn('Limited mobile support:', compat.issues)
+   * }
+   * ```
+   */
+  static checkMobileCompatibility(): MobileWASMCompatibility {
+    return checkMobileWASMCompatibility()
+  }
+
+  /**
+   * Check if the current device is mobile
+   */
+  static isMobile(): boolean {
+    return getMobileDeviceInfo().isMobile
+  }
+
+  /**
+   * Get recommended configuration for the current device
+   *
+   * Automatically adjusts settings based on device capabilities:
+   * - Mobile devices get longer timeouts
+   * - Low-memory devices disable workers
+   * - Tablets get intermediate settings
+   */
+  static getRecommendedConfig(): Partial<BrowserNoirProviderConfig> {
+    const deviceInfo = getMobileDeviceInfo()
+    const compat = checkMobileWASMCompatibility()
+
+    const config: Partial<BrowserNoirProviderConfig> = {}
+
+    if (deviceInfo.isMobile) {
+      // Mobile-specific settings
+      config.timeout = 120000 // 2 minutes for mobile
+      config.mobileMode = true
+
+      // Disable workers on very low memory devices
+      if (deviceInfo.deviceMemoryGB !== null && deviceInfo.deviceMemoryGB < 2) {
+        config.useWorker = false
+      }
+
+      // iOS Safari specific optimizations
+      if (deviceInfo.platform === 'ios' && deviceInfo.browser === 'safari') {
+        // Safari has good WASM support, keep workers enabled if SAB available
+        config.useWorker = compat.sharedArrayBuffer
+      }
+    } else if (deviceInfo.isTablet) {
+      // Tablet settings (more capable than phones)
+      config.timeout = 90000 // 1.5 minutes
+      config.mobileMode = true
+    }
+
+    // Force initialize only if score is reasonable
+    if (compat.score < 50) {
+      config.forceInitialize = false
+    }
+
+    return config
+  }
+
+  /**
    * Derive secp256k1 public key coordinates from a private key
    */
   static derivePublicKey(privateKey: Uint8Array): PublicKeyCoordinates {
@@ -207,6 +319,20 @@ export class BrowserNoirProvider implements ProofProvider {
     const x = Array.from(uncompressedPubKey.slice(1, 33))
     const y = Array.from(uncompressedPubKey.slice(33, 65))
     return { x, y }
+  }
+
+  /**
+   * Get the cached WASM compatibility info (available after construction)
+   */
+  getWASMCompatibility(): MobileWASMCompatibility | null {
+    return this.wasmCompatibility
+  }
+
+  /**
+   * Get the cached device info (available after construction)
+   */
+  getDeviceInfo(): MobileDeviceInfo | null {
+    return this.deviceInfo
   }
 
   /**
@@ -222,8 +348,25 @@ export class BrowserNoirProvider implements ProofProvider {
       return
     }
 
+    // Check mobile compatibility
+    this.wasmCompatibility = checkMobileWASMCompatibility()
+
+    if (this.config.verbose) {
+      console.log('[BrowserNoirProvider] WASM compatibility:', this.wasmCompatibility)
+    }
+
+    // Warn on poor compatibility
+    if (this.wasmCompatibility.score < 50 && !this.config.forceInitialize) {
+      throw new ProofError(
+        `Device has poor WASM compatibility (score: ${this.wasmCompatibility.score}). ` +
+          `Issues: ${this.wasmCompatibility.issues.join(', ')}. ` +
+          `Set forceInitialize: true to override.`,
+        ErrorCode.PROOF_PROVIDER_NOT_READY
+      )
+    }
+
     const { supported, missing } = BrowserNoirProvider.checkBrowserSupport()
-    if (!supported) {
+    if (!supported && !this.config.forceInitialize) {
       throw new ProofError(
         `Browser missing required features: ${missing.join(', ')}`,
         ErrorCode.PROOF_PROVIDER_NOT_READY
@@ -304,11 +447,94 @@ export class BrowserNoirProvider implements ProofProvider {
    * Initialize Web Worker for off-main-thread proof generation
    */
   private async initializeWorker(): Promise<void> {
-    // Worker initialization is optional - proof gen works on main thread too
-    // For now, we'll do main-thread proof gen with async/await
-    // Full worker implementation would require bundling worker code separately
-    if (this.config.verbose) {
-      console.log('[BrowserNoirProvider] Worker support: using async main-thread')
+    // Check if workers are supported
+    if (!supportsWebWorkers()) {
+      if (this.config.verbose) {
+        console.log('[BrowserNoirProvider] Web Workers not supported, using main thread')
+      }
+      return
+    }
+
+    try {
+      // Create worker from inline blob URL for bundler compatibility
+      const workerCode = this.getWorkerCode()
+      const blob = new Blob([workerCode], { type: 'application/javascript' })
+      const workerURL = URL.createObjectURL(blob)
+
+      this.worker = new Worker(workerURL, { type: 'module' })
+
+      // Set up message handler
+      this.worker.onmessage = (event) => {
+        this.handleWorkerMessage(event.data)
+      }
+
+      this.worker.onerror = (error) => {
+        console.error('[BrowserNoirProvider] Worker error:', error)
+        // Reject all pending requests and fall back to main thread
+        for (const [id, { reject }] of this.workerPending) {
+          reject(new Error(`Worker error: ${error.message}`))
+          this.workerPending.delete(id)
+        }
+        // Disable worker for future requests
+        this.worker?.terminate()
+        this.worker = null
+      }
+
+      // Cleanup blob URL
+      URL.revokeObjectURL(workerURL)
+
+      if (this.config.verbose) {
+        console.log('[BrowserNoirProvider] Web Worker initialized successfully')
+      }
+    } catch (error) {
+      if (this.config.verbose) {
+        console.warn('[BrowserNoirProvider] Failed to initialize worker, using main thread:', error)
+      }
+      this.worker = null
+    }
+  }
+
+  /**
+   * Get inline worker code for bundler compatibility
+   */
+  private getWorkerCode(): string {
+    // Minimal worker that delegates back for now
+    // Full implementation would inline the Noir execution logic
+    return `
+      self.onmessage = async function(event) {
+        const { id, type } = event.data;
+        // Signal that worker received message but proof gen happens on main thread
+        self.postMessage({ id, type: 'fallback', message: 'Worker initialized, using main thread for proofs' });
+      };
+    `
+  }
+
+  /**
+   * Handle messages from worker
+   */
+  private handleWorkerMessage(data: {
+    id: string
+    type: 'success' | 'error' | 'progress' | 'fallback'
+    result?: ProofResult
+    error?: string
+    progress?: { stage: string; percent: number; message: string }
+  }): void {
+    const pending = this.workerPending.get(data.id)
+    if (!pending) return
+
+    switch (data.type) {
+      case 'success':
+        this.workerPending.delete(data.id)
+        pending.resolve(data.result as ProofResult)
+        break
+      case 'error':
+        this.workerPending.delete(data.id)
+        pending.reject(new Error(data.error))
+        break
+      case 'fallback':
+        // Worker acknowledged, but we'll generate on main thread
+        // This is handled by the calling method
+        break
     }
   }
 
@@ -337,17 +563,13 @@ export class BrowserNoirProvider implements ProofProvider {
         message: 'Preparing witness inputs...',
       })
 
-      // Compute commitment hash
-      const { commitmentHash, blindingField } = await this.computeCommitmentHash(
-        params.balance,
-        params.blindingFactor,
-        params.assetId
-      )
+      // Convert blinding factor to field element
+      const blindingField = this.bytesToField(params.blindingFactor)
 
+      // New circuit signature: (minimum_required: pub u64, asset_id: pub Field, balance: u64, blinding: Field) -> [u8; 32]
       const witnessInputs = {
-        commitment_hash: commitmentHash,
         minimum_required: params.minimumRequired.toString(),
-        asset_id: this.assetIdToField(params.assetId),
+        asset_id: `0x${this.assetIdToField(params.assetId)}`,
         balance: params.balance.toString(),
         blinding: blindingField,
       }
@@ -358,8 +580,8 @@ export class BrowserNoirProvider implements ProofProvider {
         message: 'Generating witness...',
       })
 
-      // Generate witness
-      const { witness } = await this.fundingNoir.execute(witnessInputs)
+      // Generate witness - circuit returns commitment hash as [u8; 32]
+      const { witness, returnValue } = await this.fundingNoir.execute(witnessInputs)
 
       onProgress?.({
         stage: 'proving',
@@ -376,10 +598,15 @@ export class BrowserNoirProvider implements ProofProvider {
         message: 'Proof generated successfully',
       })
 
+      // Extract commitment hash from circuit return value
+      const commitmentHashBytes = returnValue as number[]
+      const commitmentHashHex = bytesToHex(new Uint8Array(commitmentHashBytes))
+
+      // Order: minimum_required, asset_id, commitment_hash (return value)
       const publicInputs: `0x${string}`[] = [
-        `0x${commitmentHash}`,
         `0x${params.minimumRequired.toString(16).padStart(16, '0')}`,
         `0x${this.assetIdToField(params.assetId)}`,
+        `0x${commitmentHashHex}`,
       ]
 
       const proof: ZKProof = {

@@ -164,12 +164,15 @@ export {
 } from './validation'
 
 // Proof providers
+// NOTE: NoirProofProvider and BrowserNoirProvider are NOT exported here
+// to avoid bundling WASM in server builds (e.g., Next.js SSR).
+// For ZK proof generation:
+//   - Browser: import { BrowserNoirProvider } from '@sip-protocol/sdk/browser'
+//   - Node.js: import { NoirProofProvider } from '@sip-protocol/sdk/proofs/noir'
 export {
   MockProofProvider,
-  NoirProofProvider,
-  BrowserNoirProvider,
   ProofGenerationError,
-  // Browser utilities
+  // Browser utilities (safe - no WASM)
   isBrowser,
   supportsWebWorkers,
   supportsSharedArrayBuffer,
@@ -369,6 +372,8 @@ export {
   createZcashClient,
   ZcashShieldedService,
   createZcashShieldedService,
+  ZcashSwapService,
+  createZcashSwapService,
 } from './zcash'
 export { ZcashErrorCode } from '@sip-protocol/types'
 
@@ -379,6 +384,16 @@ export type {
   ReceivedNote,
   ShieldedBalance,
   ExportedViewingKey,
+  ZcashSwapServiceConfig,
+  ZcashSwapSourceChain,
+  ZcashSwapSourceToken,
+  ZcashQuoteParams,
+  ZcashQuote,
+  ZcashSwapParams,
+  ZcashSwapResult,
+  ZcashSwapStatus,
+  BridgeProvider,
+  PriceFeed,
 } from './zcash'
 
 export type {

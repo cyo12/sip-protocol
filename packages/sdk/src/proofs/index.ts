@@ -46,16 +46,17 @@ export { ProofGenerationError } from './interface'
 
 // Mock provider (testing only)
 export { MockProofProvider } from './mock'
+export type { MockProofProviderOptions } from './mock'
 
-// Noir provider (production)
-export { NoirProofProvider } from './noir'
+// NOTE: NoirProofProvider is NOT exported from main entry to avoid bundling WASM
+// in server-side builds (e.g., Next.js SSR). Import directly if needed:
+//
+//   import { NoirProofProvider } from '@sip-protocol/sdk/proofs/noir'
+//
+// Types are safe to export (no runtime WASM dependency)
 export type { NoirProviderConfig } from './noir'
 
-// Browser provider (WASM + Web Workers)
-export { BrowserNoirProvider } from './browser'
-export type { BrowserNoirProviderConfig, ProofProgressCallback } from './browser'
-
-// Browser utilities
+// Browser utilities (no WASM dependencies - safe for all environments)
 export {
   isBrowser,
   supportsWebWorkers,
@@ -64,3 +65,11 @@ export {
   hexToBytes as browserHexToBytes,
   bytesToHex as browserBytesToHex,
 } from './browser-utils'
+
+// NOTE: BrowserNoirProvider is NOT exported from main entry to avoid bundling WASM
+// in server-side builds. Import from '@sip-protocol/sdk/browser' instead:
+//
+//   import { BrowserNoirProvider } from '@sip-protocol/sdk/browser'
+//
+// Types are safe to export (no runtime WASM dependency)
+export type { BrowserNoirProviderConfig, ProofProgressCallback } from './browser'

@@ -14,7 +14,7 @@
 
 | Repo | Purpose | Tech Stack | Version |
 |------|---------|------------|---------|
-| `sip-protocol/sip-protocol` | **Core** - SDK + Types monorepo | TypeScript, Vitest | v0.1.0 |
+| `sip-protocol/sip-protocol` | **Core** - SDK + Types monorepo | TypeScript, Vitest | v0.2.3 |
 | `sip-protocol/sip-website` | Demo app + Marketing site | Next.js 14, Tailwind | v0.1.0 |
 | `sip-protocol/docs-sip` | Documentation (Astro Starlight) | Astro, MDX | v0.0.1 |
 | `sip-protocol/circuits` | Noir ZK circuits | Noir, Barretenberg | - |
@@ -80,7 +80,7 @@ Quick reference for navigating between SIP Protocol repositories.
 **Key Commands:**
 ```bash
 pnpm install                    # Install dependencies
-pnpm test -- --run              # Run all tests (745 tests)
+pnpm test -- --run              # Run all tests (1,293 tests)
 pnpm typecheck                  # Type check
 pnpm build                      # Build all packages
 ```
@@ -102,7 +102,7 @@ pnpm build                      # Build all packages
 **Key Commands:**
 ```bash
 pnpm dev                        # Dev server (localhost:3000)
-pnpm test -- --run              # Run tests (123 tests)
+pnpm test -- --run              # Run tests (126 tests)
 pnpm build                      # Build for production
 pnpm typecheck                  # Type check
 ```
@@ -193,7 +193,7 @@ See [ROADMAP.md](ROADMAP.md) for detailed milestone tracking and priorities.
 
 **SIP (Shielded Intents Protocol)** is the privacy standard for Web3 — like HTTPS for the internet. One toggle to shield sender, amount, and recipient using stealth addresses, Pedersen commitments, and viewing keys for compliance.
 
-**Status:** M8 In Progress | 745 SDK tests + 123 demo tests | Live at sip-protocol.org
+**Status:** M8 In Progress | 1,293 SDK tests + 126 demo tests | Live at sip-protocol.org
 
 **Endgame:** Privacy middleware between applications and blockchains. Chain-agnostic. Settlement-agnostic. The universal privacy layer.
 
@@ -263,7 +263,7 @@ SIP combines **Settlement Aggregation (C)** for standardization with **Proof Com
 | Wallet adapters | Done | Abstract interface + Solana/Ethereum |
 | E2E test suite | Done | 128 tests covering all flows |
 | ZK proof specs | Done | Funding, Validity, Fulfillment |
-| Noir circuits | Planned | M8 - stubs ready in SDK |
+| Noir circuits | Done | BrowserNoirProvider for browser, compiled circuits |
 
 ---
 
@@ -273,7 +273,7 @@ SIP combines **Settlement Aggregation (C)** for standardization with **Proof Com
 # Install dependencies
 pnpm install
 
-# Run all tests (745 tests, ~20s)
+# Run all tests (1,293 tests, ~20s)
 pnpm test -- --run
 
 # Run E2E tests only (128 tests)
@@ -291,7 +291,7 @@ pnpm build
 
 ---
 
-## Test Suite (745 SDK + 123 Demo = 868 tests)
+## Test Suite (1,293 SDK + 126 Demo = 1,419 tests)
 
 ### SDK Tests (sip-protocol)
 
@@ -437,8 +437,8 @@ sip-protocol/sip-protocol     # This repo (core SDK monorepo)
 | M4: Network Integration | NEAR, Zcash, wallets | ✅ |
 | M5: Documentation & Launch | Docs, whitepaper | ✅ |
 | M6: Launch & Publish | npm publish, docs site | ✅ |
-| M7: Real Demo Integration | Live demo, 92 tests | ✅ |
-| M8: Production Hardening | Noir circuits, multi-curve, security | 🔄 |
+| M7: Real Demo Integration | Live demo, 1,419 tests | ✅ |
+| M8: Production Hardening | Noir circuits ✅, multi-curve, security | 🔄 |
 
 ### Phase 2: Standard (2026)
 | Milestone | Focus | Status |
@@ -524,5 +524,5 @@ ssh core  # Admin user for nginx/system config
 
 ---
 
-**Last Updated:** 2025-12-02
+**Last Updated:** 2025-12-03
 **Status:** M8 In Progress | C+B Hybrid Strategy Defined

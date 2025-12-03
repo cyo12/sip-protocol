@@ -19,9 +19,13 @@
 // Re-export everything from main entry
 export * from './index'
 
-// Browser-specific exports (already in main, but explicit here)
+// Browser-specific exports (import directly from browser module to get WASM support)
+export { BrowserNoirProvider } from './proofs/browser'
+export { ProofWorker, createWorkerBlobURL } from './proofs/worker'
+export type { WorkerRequest, WorkerResponse, WorkerMessageType } from './proofs/worker'
+
+// Re-export utilities that are already in main (for convenience)
 export {
-  BrowserNoirProvider,
   isBrowser,
   supportsWebWorkers,
   supportsSharedArrayBuffer,
@@ -29,5 +33,26 @@ export {
   browserHexToBytes,
   browserBytesToHex,
 } from './proofs'
+
+// Mobile browser detection utilities
+export {
+  detectMobilePlatform,
+  detectMobileBrowser,
+  getMobileDeviceInfo,
+  checkMobileWASMCompatibility,
+  getBrowserVersion,
+  getOSVersion,
+  isTablet,
+  supportsTouch,
+  supportsWASMSimd,
+  supportsWASMBulkMemory,
+} from './proofs/browser-utils'
+
+export type {
+  MobilePlatform,
+  MobileBrowser,
+  MobileDeviceInfo,
+  MobileWASMCompatibility,
+} from './proofs/browser-utils'
 
 export type { BrowserNoirProviderConfig, ProofProgressCallback } from './proofs'
