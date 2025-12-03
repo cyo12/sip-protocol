@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-12-03
+
+### Security
+- **slippageTolerance validation** - Added bounds checking (0-10000 basis points) to prevent negative minOutputAmount calculations
+- 4 new test cases for slippage validation edge cases
+
+## [0.3.1] - 2025-12-03
+
+### Added
+- **Web Worker proof generation** - Validity and fulfillment proofs via dedicated workers
+- **Fail-fast bridge validation** - Early validation before API calls in NEAR Intents adapter
+- **Mock prices documentation** - Comprehensive docs for testing scenarios
+
+### Fixed
+- Minor bug fixes and documentation improvements
+
 ## [0.3.0] - 2025-12-03
 
 ### Added - M11: Multi-Settlement
@@ -77,6 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Milestone | Highlights |
 |---------|------|-----------|------------|
+| 0.3.2 | 2025-12-03 | Security | slippageTolerance validation fix |
+| 0.3.1 | 2025-12-03 | Bugfix | Web Workers, fail-fast validation, docs |
 | 0.3.0 | 2025-12-03 | M11 | Settlement abstraction, SmartRouter, 3 backends |
 | 0.2.10 | 2025-12-03 | M10 | Noir circuits, browser WASM, mobile support |
 | 0.2.0 | 2025-12-01 | M8 | Proof providers, E2E tests |
