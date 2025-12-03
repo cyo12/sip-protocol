@@ -5,15 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2025-12-03
+
+### Added - M11: Multi-Settlement
+
+#### Settlement Abstraction Layer
+- **SettlementBackend interface** - Pluggable backend abstraction for multi-settlement support
+- **SettlementRegistry** - Backend management with route-based selection
+- **SmartRouter** - Intelligent route selection with fee/speed/privacy ranking
+
+#### Settlement Backends
+- **NEARIntentsBackend** - Refactored NEAR 1Click adapter implementing SettlementBackend
+- **ZcashNativeBackend** - Native ZEC→ZEC transfers with shielded address support
+- **DirectChainBackend** - Same-chain private transfers (ETH→ETH, SOL→SOL, etc.)
+
+#### Research
+- THORChain integration feasibility study (`docs/specs/THORCHAIN-RESEARCH.md`)
+
+### Changed
+- Settlement module: 2,683 lines of code
+- 143 new tests added (1,628 total SDK tests)
+
+## [0.2.10] - 2025-12-03
+
+### Added - M10: ZK Production
+- **BrowserNoirProvider** - Browser-based Noir proof generation with WASM
+- **Mobile WASM support** - iOS Safari, Chrome Android, Firefox Mobile detection
+- Mobile compatibility utilities (`getMobileDeviceInfo`, `checkMobileWASMCompatibility`)
+- SharedArrayBuffer and COOP/COEP header detection
+- Noir upgrade to beta.16
+
+### Changed
+- Updated @noir-lang/noir_js to 1.0.0-beta.16
+- Updated @noir-lang/types to 1.0.0-beta.16
+
+## [0.2.0] - 2025-12-01
 
 ### Added
-- Deprecation warnings for legacy methods scheduled for removal in v0.2.0
+- Noir proof provider with mock implementation
+- ProofProvider interface for ZK proof abstraction
+- E2E test suite (128 tests)
+- Integration tests for cross-chain swaps
 
-### Deprecated
-- `createCommitment()` in `@sip-protocol/sdk` - Use `commit()` from `./commitment` instead
-- `verifyCommitment()` in `@sip-protocol/sdk` - Use `verifyOpening()` from `./commitment` instead
-- `generateShieldedAddress()` in `ZcashRPCClient` - Use `createAccount()` and `getAddressForAccount()` instead
+### Removed
+- Deprecated `createCommitment()` - Use `commit()` from `./commitment`
+- Deprecated `verifyCommitment()` - Use `verifyOpening()` from `./commitment`
+- Deprecated `generateShieldedAddress()` in ZcashRPCClient
 
 ## [0.1.0] - 2025-11-27
 
@@ -36,16 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Deprecation Policy
+## Version History
 
-Methods marked as deprecated will:
-1. Display console warnings when called
-2. Continue to function normally in current version
-3. Be removed in the next minor version (v0.2.0)
-4. Have migration paths documented in `docs/API-MIGRATION.md`
-
-**Removal Timeline:**
-- **v0.1.x**: Deprecated methods work with warnings
-- **v0.2.0**: Deprecated methods removed (breaking change)
-
-For migration guidance, see [API Migration Guide](docs/API-MIGRATION.md).
+| Version | Date | Milestone | Highlights |
+|---------|------|-----------|------------|
+| 0.3.0 | 2025-12-03 | M11 | Settlement abstraction, SmartRouter, 3 backends |
+| 0.2.10 | 2025-12-03 | M10 | Noir circuits, browser WASM, mobile support |
+| 0.2.0 | 2025-12-01 | M8 | Proof providers, E2E tests |
+| 0.1.0 | 2025-11-27 | M1-M7 | Initial release, core cryptography |
