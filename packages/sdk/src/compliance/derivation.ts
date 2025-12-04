@@ -122,10 +122,20 @@ export interface DeriveMultipleParams {
  */
 export class AuditorKeyDerivation {
   /**
-   * SIP Protocol coin type (BIP-44 registered)
+   * SIP Protocol coin type for BIP-44 derivation
    *
-   * Note: This is a placeholder. In production, register with SLIP-44:
-   * https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+   * This uses 1234 as SIP Protocol's internal coin type identifier.
+   *
+   * **Registration Status**: Not registered with SLIP-44
+   *
+   * **Why this is acceptable**:
+   * - SIP viewing keys are protocol-specific, not wallet-portable
+   * - Keys derived here are for auditor access, not user funds
+   * - SLIP-44 registration is for coin types that need hardware wallet support
+   *
+   * **Future consideration**: If hardware wallet integration for SIP auditor keys
+   * is desired, submit a PR to https://github.com/satoshilabs/slips to register
+   * an official coin type. Current value (1234) is in the unregistered range.
    */
   static readonly COIN_TYPE = 1234
 

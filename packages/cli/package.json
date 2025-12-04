@@ -28,7 +28,7 @@
     "lint": "eslint --ext .ts src/",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "test": "vitest --passWithNoTests"
+    "test": "vitest"
   },
   "dependencies": {
     "@sip-protocol/sdk": "^0.6.0",

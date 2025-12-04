@@ -93,8 +93,9 @@ export {
 
 export type { StealthCurve } from './stealth'
 
-// Move blockchain stealth addresses (Aptos)
+// Move blockchain stealth addresses (Aptos, Sui)
 export {
+  // Aptos
   AptosStealthService,
   generateAptosStealthAddress,
   deriveAptosStealthPrivateKey,
@@ -102,9 +103,17 @@ export {
   ed25519PublicKeyToAptosAddress,
   aptosAddressToAuthKey,
   isValidAptosAddress,
+  // Sui
+  SuiStealthService,
+  generateSuiStealthAddress,
+  deriveSuiStealthPrivateKey,
+  checkSuiStealthAddress,
+  ed25519PublicKeyToSuiAddress,
+  normalizeSuiAddress,
+  isValidSuiAddress,
 } from './move'
 
-export type { AptosStealthResult } from './move'
+export type { AptosStealthResult, SuiStealthResult } from './move'
 
 // Cosmos blockchain stealth addresses
 export {

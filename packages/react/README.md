@@ -56,28 +56,68 @@ Access the SIP client instance directly.
 const sip = useSIP()
 ```
 
-### `useStealthAddress()` (stub)
+### `useStealthAddress(chain)`
 
-Generate and manage stealth addresses. Full implementation coming soon.
+Generate and manage stealth addresses for privacy-preserving transactions.
 
 ```tsx
-const { generate, parse, isValid } = useStealthAddress()
+const {
+  metaAddress,
+  stealthAddress,
+  isGenerating,
+  regenerate,
+  copyToClipboard,
+} = useStealthAddress('ethereum')
+
+return (
+  <div>
+    <p>Share this: {metaAddress}</p>
+    <p>One-time address: {stealthAddress}</p>
+    <button onClick={regenerate}>Generate New</button>
+    <button onClick={copyToClipboard}>Copy</button>
+  </div>
+)
 ```
 
-### `usePrivateSwap()` (stub)
+### `usePrivateSwap()`
 
-Execute private swaps with shielded intents. Full implementation coming soon.
+Execute private swaps with shielded intents.
 
 ```tsx
-const { execute, status, error } = usePrivateSwap()
+const { quote, fetchQuote, swap, status, isLoading, error, reset } = usePrivateSwap()
+
+// Fetch a quote
+await fetchQuote({
+  inputChain: 'solana',
+  outputChain: 'ethereum',
+  inputToken: 'SOL',
+  outputToken: 'ETH',
+  inputAmount: '1000000000',
+})
+
+// Execute swap
+const result = await swap({
+  input: { chain: 'solana', token: 'SOL', amount: 1000000000n },
+  output: { chain: 'ethereum', token: 'ETH', minAmount: 0n },
+  privacyLevel: PrivacyLevel.SHIELDED,
+})
 ```
 
-### `useViewingKey()` (stub)
+### `useViewingKey()`
 
-Generate and manage viewing keys for compliance. Full implementation coming soon.
+Generate and manage viewing keys for compliance.
 
 ```tsx
-const { generate, decrypt, share } = useViewingKey()
+const { viewingKey, sharedWith, generate, decrypt, share } = useViewingKey()
+
+// Generate a viewing key
+const key = generate()
+
+// Share with auditor
+await share('auditor-123')
+
+// Decrypt transaction for auditing
+const decrypted = await decrypt(encryptedTransaction)
 ```
 
 ## Configuration
@@ -104,14 +144,14 @@ See [@sip-protocol/sdk](https://github.com/sip-protocol/sip-protocol/tree/main/p
 
 ## Development Status
 
-This package is under active development:
+This package is production-ready with full hook implementations:
 
 - [x] Provider setup
 - [x] `useSIP()` hook
-- [ ] `useStealthAddress()` implementation
-- [ ] `usePrivateSwap()` implementation
-- [ ] `useViewingKey()` implementation
-- [ ] Additional utility hooks
+- [x] `useStealthAddress()` hook (secp256k1 & ed25519 support)
+- [x] `usePrivateSwap()` hook (full swap lifecycle)
+- [x] `useViewingKey()` hook (compliance-ready)
+- [x] Comprehensive test suite (57 tests)
 
 ## Documentation
 

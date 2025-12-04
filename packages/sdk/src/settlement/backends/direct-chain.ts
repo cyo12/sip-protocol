@@ -39,6 +39,8 @@ import {
   ed25519PublicKeyToNearAddress,
   isEd25519Chain,
 } from '../../stealth'
+import { ed25519PublicKeyToAptosAddress } from '../../move/aptos'
+import { ed25519PublicKeyToSuiAddress } from '../../move/sui'
 import { ValidationError } from '../../errors'
 import { randomBytes, bytesToHex } from '@noble/hashes/utils'
 
@@ -161,6 +163,8 @@ export class DirectChainBackend implements SettlementBackend {
       'optimism',
       'base',
       'bitcoin',
+      'aptos',
+      'sui',
     ],
     supportedDestinationChains: [
       'ethereum',
@@ -172,6 +176,8 @@ export class DirectChainBackend implements SettlementBackend {
       'optimism',
       'base',
       'bitcoin',
+      'aptos',
+      'sui',
     ],
     supportedPrivacyLevels: [
       PrivacyLevel.TRANSPARENT,
@@ -280,7 +286,7 @@ export class DirectChainBackend implements SettlementBackend {
         : params.recipientMetaAddress
 
       if (isEd25519Chain(chain)) {
-        // Ed25519 chains (Solana, NEAR)
+        // Ed25519 chains (Solana, NEAR, Aptos, Sui)
         const { stealthAddress } = generateEd25519StealthAddress(metaAddr)
         stealthData = stealthAddress
 
@@ -288,11 +294,16 @@ export class DirectChainBackend implements SettlementBackend {
           recipientAddress = ed25519PublicKeyToSolanaAddress(stealthAddress.address)
         } else if (chain === 'near') {
           recipientAddress = ed25519PublicKeyToNearAddress(stealthAddress.address)
+        } else if (chain === 'aptos') {
+          recipientAddress = ed25519PublicKeyToAptosAddress(stealthAddress.address)
+        } else if (chain === 'sui') {
+          recipientAddress = ed25519PublicKeyToSuiAddress(stealthAddress.address)
         } else {
+          // This should not happen if ED25519_CHAINS is kept in sync
           throw new ValidationError(
-            `Ed25519 address derivation not implemented for ${chain}`,
+            `Ed25519 address derivation not implemented for ${chain}. Please add support in direct-chain.ts.`,
             'toChain',
-            { chain }
+            { chain, hint: 'Add address derivation function for this chain' }
           )
         }
       } else {

@@ -45,7 +45,7 @@ router.post(
     const { value, blindingFactor } = req.body as CreateCommitmentRequest
 
     const valueBigInt = BigInt(value)
-    const blindingBytes = blindingFactor ? hexToBytes(blindingFactor) : undefined
+    const blindingBytes = blindingFactor ? hexToBytes(blindingFactor.replace(/^0x/, '')) : undefined
 
     const result = commit(valueBigInt, blindingBytes)
 

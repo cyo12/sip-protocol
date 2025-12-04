@@ -84,6 +84,48 @@ export interface CreateIntentOptions {
    * ```
    */
   proofProvider?: ProofProvider
+
+  /**
+   * Signature proving ownership of the sender's address
+   *
+   * Required for production proof generation. This signature proves
+   * the sender controls the address that holds the input funds.
+   *
+   * Should be a 64-byte ECDSA signature over the address.
+   */
+  ownershipSignature?: Uint8Array
+
+  /**
+   * Sender's secret key for nullifier derivation
+   *
+   * Required for production proof generation. Used to derive:
+   * - Public key for ECDSA verification in proofs
+   * - Nullifier to prevent double-spending
+   *
+   * Should be a 32-byte secret. Keep this secure!
+   */
+  senderSecret?: Uint8Array
+
+  /**
+   * Signature authorizing this specific intent
+   *
+   * Required for production proof generation. This signature proves
+   * the sender authorized this intent (signs the intent hash).
+   *
+   * Should be a 64-byte ECDSA signature over the intent hash.
+   */
+  authorizationSignature?: Uint8Array
+
+  /**
+   * Allow placeholder signatures for development/testing
+   *
+   * When true, allows proof generation with empty placeholder signatures.
+   * **WARNING**: Never use this in production! Proofs with placeholders
+   * are not cryptographically valid.
+   *
+   * @default false
+   */
+  allowPlaceholders?: boolean
 }
 
 /**
@@ -137,6 +179,10 @@ export class IntentBuilder {
   private params: Partial<CreateIntentParams> = {}
   private senderAddress?: string
   private proofProvider?: ProofProvider
+  private ownershipSignature?: Uint8Array
+  private senderSecret?: Uint8Array
+  private authorizationSignature?: Uint8Array
+  private allowPlaceholders?: boolean
 
   /**
    * Set the input for the intent
@@ -317,6 +363,55 @@ export class IntentBuilder {
   }
 
   /**
+   * Set the signatures and secret for proof generation
+   *
+   * Required for production proof generation. Provides the cryptographic
+   * materials needed to generate valid ZK proofs.
+   *
+   * @param signatures - Object containing ownership signature, sender secret, and authorization signature
+   * @returns this for chaining
+   *
+   * @example
+   * ```typescript
+   * const intent = await builder
+   *   .input('near', 'NEAR', 100n)
+   *   .output('zcash', 'ZEC', 95n)
+   *   .privacy(PrivacyLevel.SHIELDED)
+   *   .withProvider(noirProvider)
+   *   .withSignatures({
+   *     ownershipSignature: await wallet.signMessage(address),
+   *     senderSecret: wallet.privateKey,
+   *     authorizationSignature: await wallet.signMessage(intentHash),
+   *   })
+   *   .build()
+   * ```
+   */
+  withSignatures(signatures: {
+    ownershipSignature: Uint8Array
+    senderSecret: Uint8Array
+    authorizationSignature: Uint8Array
+  }): this {
+    this.ownershipSignature = signatures.ownershipSignature
+    this.senderSecret = signatures.senderSecret
+    this.authorizationSignature = signatures.authorizationSignature
+    return this
+  }
+
+  /**
+   * Allow placeholder signatures for development/testing
+   *
+   * **WARNING**: Never use this in production! Proofs with placeholders
+   * are not cryptographically valid.
+   *
+   * @param allow - Whether to allow placeholders (default: true)
+   * @returns this for chaining
+   */
+  withPlaceholders(allow: boolean = true): this {
+    this.allowPlaceholders = allow
+    return this
+  }
+
+  /**
    * Build the shielded intent
    *
    * If a proof provider is set and the privacy level requires proofs,
@@ -328,6 +423,10 @@ export class IntentBuilder {
     return createShieldedIntent(this.params as CreateIntentParams, {
       senderAddress: this.senderAddress,
       proofProvider: this.proofProvider,
+      ownershipSignature: this.ownershipSignature,
+      senderSecret: this.senderSecret,
+      authorizationSignature: this.authorizationSignature,
+      allowPlaceholders: this.allowPlaceholders,
     })
   }
 }
@@ -359,7 +458,14 @@ export async function createShieldedIntent(
   validateCreateIntentParams(params)
 
   const { input, output, privacy, recipientMetaAddress, viewingKey, ttl = 300 } = params
-  const { senderAddress, proofProvider } = options ?? {}
+  const {
+    senderAddress,
+    proofProvider,
+    ownershipSignature,
+    senderSecret,
+    authorizationSignature,
+    allowPlaceholders = false,
+  } = options ?? {}
 
   // Get privacy configuration
   // Compute viewing key hash the same way as generateViewingKey():
@@ -409,11 +515,41 @@ export async function createShieldedIntent(
   const requiresProofs = privacy !== PrivacyLevelEnum.TRANSPARENT
 
   if (requiresProofs && proofProvider && proofProvider.isReady) {
+    // Check if signatures are provided or placeholders are allowed
+    const hasSignatures = ownershipSignature && senderSecret && authorizationSignature
+    const usingPlaceholders = !hasSignatures
+
+    if (usingPlaceholders && !allowPlaceholders) {
+      throw new ValidationError(
+        'Proof generation requires signatures. Provide ownershipSignature, senderSecret, and authorizationSignature in options, or set allowPlaceholders: true for development/testing.',
+        'options',
+        {
+          missing: [
+            !ownershipSignature && 'ownershipSignature',
+            !senderSecret && 'senderSecret',
+            !authorizationSignature && 'authorizationSignature',
+          ].filter(Boolean),
+        }
+      )
+    }
+
+    if (usingPlaceholders) {
+      console.warn(
+        '[createShieldedIntent] WARNING: Using placeholder signatures for proof generation. ' +
+        'These proofs are NOT cryptographically valid. Do NOT use in production!'
+      )
+    }
+
     // Helper to convert HexString to Uint8Array
     const hexToUint8 = (hex: HexString): Uint8Array => {
       const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex
       return hexToBytes(cleanHex)
     }
+
+    // Use provided signatures or placeholders (if allowed)
+    const effectiveOwnershipSig = ownershipSignature ?? new Uint8Array(64)
+    const effectiveSenderSecret = senderSecret ?? new Uint8Array(32)
+    const effectiveAuthSig = authorizationSignature ?? new Uint8Array(64)
 
     // Generate funding proof
     const fundingResult = await proofProvider.generateFundingProof({
@@ -422,7 +558,7 @@ export async function createShieldedIntent(
       blindingFactor: hexToUint8(inputCommitment.blindingFactor as HexString),
       assetId: input.asset.symbol,
       userAddress: senderAddress ?? '0x0',
-      ownershipSignature: new Uint8Array(64), // Placeholder - would come from wallet
+      ownershipSignature: effectiveOwnershipSig,
     })
     fundingProof = fundingResult.proof
 
@@ -431,8 +567,8 @@ export async function createShieldedIntent(
       intentHash: hash(intentId) as HexString,
       senderAddress: senderAddress ?? '0x0',
       senderBlinding: hexToUint8(senderCommitment.blindingFactor as HexString),
-      senderSecret: new Uint8Array(32), // Placeholder - would come from wallet
-      authorizationSignature: new Uint8Array(64), // Placeholder - would come from wallet
+      senderSecret: effectiveSenderSecret,
+      authorizationSignature: effectiveAuthSig,
       nonce: new Uint8Array(32), // Could use randomBytes here
       timestamp: now,
       expiry: now + ttl,

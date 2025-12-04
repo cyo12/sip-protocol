@@ -346,11 +346,12 @@ describe('usePrivateSwap', () => {
 
     it('should transition through status states correctly', async () => {
       mockSIPClient.createIntent.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockIntent), 50))
+        () => new Promise(resolve => setTimeout(() => resolve(mockIntent), 10))
       )
       mockSIPClient.getQuotes.mockResolvedValue([mockQuote])
+      // Use longer delay for execute to ensure we can catch 'confirming' state
       mockSIPClient.execute.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockFulfillmentResult), 50))
+        () => new Promise(resolve => setTimeout(() => resolve(mockFulfillmentResult), 100))
       )
 
       const { result } = renderHook(() => usePrivateSwap())

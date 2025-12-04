@@ -498,20 +498,44 @@ export class LedgerWalletAdapter extends BaseWalletAdapter {
 
   /**
    * Build raw Ethereum transaction for Ledger signing
+   *
+   * @throws {HardwareWalletError} Always throws - RLP encoding not yet implemented
+   *
+   * @remarks
+   * Proper Ethereum transaction signing requires RLP (Recursive Length Prefix)
+   * encoding. This is a non-trivial implementation that requires either:
+   *
+   * 1. Adding @ethereumjs/rlp dependency
+   * 2. Adding @ethersproject/transactions dependency
+   * 3. Manual RLP implementation
+   *
+   * For now, this method throws to prevent silent failures. To enable
+   * Ledger transaction signing, implement proper RLP encoding.
+   *
+   * @see https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/
    */
-  private buildRawEthereumTx(tx: HardwareEthereumTx): string {
-    // Simplified - actual implementation would use RLP encoding
-    // This is a placeholder for the structure
-    const fields = [
-      tx.nonce,
-      tx.gasPrice ?? tx.maxFeePerGas ?? '0x0',
-      tx.gasLimit,
-      tx.to,
-      tx.value,
-      tx.data ?? '0x',
-    ]
-
-    return fields.join('').replace(/0x/g, '')
+  private buildRawEthereumTx(_tx: HardwareEthereumTx): string {
+    // TODO: Implement proper RLP encoding for Ethereum transactions
+    //
+    // Required fields for legacy transaction (type 0):
+    //   RLP([nonce, gasPrice, gasLimit, to, value, data, v, r, s])
+    //
+    // Required fields for EIP-1559 transaction (type 2):
+    //   0x02 || RLP([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas,
+    //                gasLimit, to, value, data, accessList, v, r, s])
+    //
+    // Implementation options:
+    //   - @ethereumjs/rlp: Pure RLP encoding
+    //   - @ethersproject/transactions: Full transaction utilities
+    //   - viem: Modern Ethereum library with RLP support
+    //
+    throw new HardwareWalletError(
+      'Ethereum transaction signing requires RLP encoding which is not yet implemented. ' +
+      'Install @ethereumjs/rlp or @ethersproject/transactions and implement buildRawEthereumTx(). ' +
+      'See https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/',
+      HardwareErrorCode.UNSUPPORTED,
+      'ledger'
+    )
   }
 
   /**

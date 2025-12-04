@@ -10,6 +10,9 @@ const router: Router = Router()
 // In production, use NoirProofProvider from '@sip-protocol/sdk/proofs/noir'
 const proofProvider = new MockProofProvider()
 
+// Initialize the provider (fire-and-forget, provider handles internal state)
+proofProvider.initialize().catch(console.error)
+
 /**
  * POST /proof/funding
  * Generate a funding proof (proves balance >= minimum without revealing exact balance)
@@ -56,7 +59,7 @@ router.post(
 
     const balanceBigInt = BigInt(balance)
     const minRequiredBigInt = BigInt(minRequired)
-    const balanceBlindingBytes = hexToBytes(balanceBlinding)
+    const balanceBlindingBytes = hexToBytes(balanceBlinding.replace(/^0x/, ''))
 
     const result = await proofProvider.generateFundingProof({
       balance: balanceBigInt,

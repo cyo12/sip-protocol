@@ -174,11 +174,330 @@ export interface UnisatAPI {
 }
 
 /**
- * Global window interface for Unisat
+ * Xverse wallet API interface
+ *
+ * Official API: https://docs.xverse.app/sats-connect
+ */
+export interface XverseAPI {
+  /**
+   * Request wallet connection
+   */
+  request(
+    method: 'getAccounts' | 'getAddresses',
+    params?: unknown
+  ): Promise<{
+    result: {
+      addresses: Array<{
+        address: string
+        publicKey: string
+        purpose: 'payment' | 'ordinals' | 'stacks'
+        addressType: 'p2tr' | 'p2wpkh' | 'p2sh-p2wpkh' | 'stacks'
+      }>
+    }
+  }>
+
+  /**
+   * Sign a PSBT
+   */
+  request(
+    method: 'signPsbt',
+    params: {
+      psbt: string // base64 encoded PSBT
+      signInputs: Record<string, number[]>
+      broadcast?: boolean
+    }
+  ): Promise<{
+    result: {
+      psbt: string // base64 encoded signed PSBT
+      txid?: string // if broadcast: true
+    }
+  }>
+
+  /**
+   * Sign a message
+   */
+  request(
+    method: 'signMessage',
+    params: {
+      address: string
+      message: string
+      protocol?: 'ECDSA' | 'BIP322'
+    }
+  ): Promise<{
+    result: {
+      signature: string
+      messageHash: string
+      address: string
+    }
+  }>
+
+  /**
+   * Send BTC
+   */
+  request(
+    method: 'sendTransfer',
+    params: {
+      recipients: Array<{ address: string; amount: number }>
+    }
+  ): Promise<{
+    result: { txid: string }
+  }>
+}
+
+/**
+ * Leather wallet API interface
+ *
+ * Official API: https://leather.gitbook.io/developers/bitcoin/connect
+ */
+export interface LeatherAPI {
+  /**
+   * Request wallet connection and get addresses
+   */
+  request(
+    method: 'getAddresses'
+  ): Promise<{
+    result: {
+      addresses: Array<{
+        symbol: 'BTC' | 'STX'
+        type?: 'p2wpkh' | 'p2tr'
+        address: string
+        publicKey: string
+        derivationPath?: string
+      }>
+    }
+  }>
+
+  /**
+   * Sign a PSBT
+   */
+  request(
+    method: 'signPsbt',
+    params: {
+      hex: string // hex encoded PSBT
+      account?: number
+      allowedSighash?: number[]
+      signAtIndex?: number | number[]
+      broadcast?: boolean
+    }
+  ): Promise<{
+    result: {
+      hex: string // hex encoded signed PSBT
+      txid?: string // if broadcast: true
+    }
+  }>
+
+  /**
+   * Sign a message
+   */
+  request(
+    method: 'signMessage',
+    params: {
+      message: string
+      paymentType?: 'p2wpkh' | 'p2tr'
+      account?: number
+    }
+  ): Promise<{
+    result: {
+      signature: string
+      address: string
+      message: string
+    }
+  }>
+
+  /**
+   * Send BTC
+   */
+  request(
+    method: 'sendTransfer',
+    params: {
+      recipients: Array<{ address: string; amount: string }>
+      account?: number
+    }
+  ): Promise<{
+    result: { txid: string }
+  }>
+}
+
+/**
+ * Global window interface for Bitcoin wallets
  */
 declare global {
   interface Window {
     unisat?: UnisatAPI
+    XverseProviders?: {
+      BitcoinProvider?: XverseAPI
+    }
+    LeatherProvider?: LeatherAPI
+    btc?: LeatherAPI // Alternative Leather injection
+  }
+}
+
+/**
+ * Wrapper to adapt Xverse API to UnisatAPI interface
+ */
+export function createXverseWrapper(xverse: XverseAPI): UnisatAPI {
+  let cachedAddress: string | undefined
+  let cachedPublicKey: string | undefined
+
+  return {
+    async requestAccounts(): Promise<string[]> {
+      const response = await xverse.request('getAddresses')
+      const btcAddresses = response.result.addresses.filter(
+        (a) => a.purpose === 'payment' || a.purpose === 'ordinals'
+      )
+      if (btcAddresses.length > 0) {
+        // Prefer Taproot (ordinals) address
+        const taprootAddr = btcAddresses.find((a) => a.addressType === 'p2tr')
+        const primaryAddr = taprootAddr || btcAddresses[0]
+        cachedAddress = primaryAddr.address
+        cachedPublicKey = primaryAddr.publicKey
+      }
+      return btcAddresses.map((a) => a.address)
+    },
+
+    async getAccounts(): Promise<string[]> {
+      if (cachedAddress) return [cachedAddress]
+      return this.requestAccounts()
+    },
+
+    async getPublicKey(): Promise<string> {
+      if (cachedPublicKey) return cachedPublicKey
+      await this.requestAccounts()
+      return cachedPublicKey || ''
+    },
+
+    async getBalance(): Promise<{ confirmed: number; unconfirmed: number; total: number }> {
+      // Xverse doesn't expose balance directly, return 0s
+      // Balance should be fetched from external API
+      return { confirmed: 0, unconfirmed: 0, total: 0 }
+    },
+
+    async signPsbt(psbtHex: string, options?: SignPsbtOptions): Promise<string> {
+      // Convert hex to base64 for Xverse
+      const psbtBase64 = Buffer.from(psbtHex, 'hex').toString('base64')
+      const signInputs: Record<string, number[]> = {}
+
+      if (options?.toSignInputs && cachedAddress) {
+        signInputs[cachedAddress] = options.toSignInputs.map((i) => i.index)
+      } else if (cachedAddress) {
+        // Sign all inputs by default
+        signInputs[cachedAddress] = [0]
+      }
+
+      const response = await xverse.request('signPsbt', {
+        psbt: psbtBase64,
+        signInputs,
+        broadcast: false,
+      })
+
+      // Convert back to hex
+      return Buffer.from(response.result.psbt, 'base64').toString('hex')
+    },
+
+    async signMessage(message: string, type?: 'ecdsa' | 'bip322-simple'): Promise<string> {
+      if (!cachedAddress) {
+        await this.requestAccounts()
+      }
+      const response = await xverse.request('signMessage', {
+        address: cachedAddress!,
+        message,
+        protocol: type === 'bip322-simple' ? 'BIP322' : 'ECDSA',
+      })
+      return response.result.signature
+    },
+
+    async pushTx(_rawTx: string): Promise<string> {
+      // Xverse requires using signPsbt with broadcast: true
+      throw new Error('Use signPsbt with broadcast: true for Xverse')
+    },
+
+    async getNetwork(): Promise<BitcoinNetwork> {
+      // Xverse doesn't expose network, assume mainnet
+      return 'livenet'
+    },
+
+    async switchNetwork(_network: BitcoinNetwork): Promise<void> {
+      throw new Error('Network switching not supported by Xverse')
+    },
+
+    async getChain(): Promise<{ enum: string; name: string }> {
+      return { enum: 'BITCOIN_MAINNET', name: 'Bitcoin Mainnet' }
+    },
+  }
+}
+
+/**
+ * Wrapper to adapt Leather API to UnisatAPI interface
+ */
+export function createLeatherWrapper(leather: LeatherAPI): UnisatAPI {
+  let cachedAddress: string | undefined
+  let cachedPublicKey: string | undefined
+
+  return {
+    async requestAccounts(): Promise<string[]> {
+      const response = await leather.request('getAddresses')
+      const btcAddresses = response.result.addresses.filter((a) => a.symbol === 'BTC')
+      if (btcAddresses.length > 0) {
+        // Prefer Taproot address
+        const taprootAddr = btcAddresses.find((a) => a.type === 'p2tr')
+        const primaryAddr = taprootAddr || btcAddresses[0]
+        cachedAddress = primaryAddr.address
+        cachedPublicKey = primaryAddr.publicKey
+      }
+      return btcAddresses.map((a) => a.address)
+    },
+
+    async getAccounts(): Promise<string[]> {
+      if (cachedAddress) return [cachedAddress]
+      return this.requestAccounts()
+    },
+
+    async getPublicKey(): Promise<string> {
+      if (cachedPublicKey) return cachedPublicKey
+      await this.requestAccounts()
+      return cachedPublicKey || ''
+    },
+
+    async getBalance(): Promise<{ confirmed: number; unconfirmed: number; total: number }> {
+      // Leather doesn't expose balance directly
+      return { confirmed: 0, unconfirmed: 0, total: 0 }
+    },
+
+    async signPsbt(psbtHex: string, options?: SignPsbtOptions): Promise<string> {
+      const signAtIndex = options?.toSignInputs?.map((i) => i.index)
+
+      const response = await leather.request('signPsbt', {
+        hex: psbtHex,
+        signAtIndex,
+        broadcast: false,
+      })
+
+      return response.result.hex
+    },
+
+    async signMessage(message: string, type?: 'ecdsa' | 'bip322-simple'): Promise<string> {
+      const response = await leather.request('signMessage', {
+        message,
+        paymentType: 'p2tr',
+      })
+      return response.result.signature
+    },
+
+    async pushTx(_rawTx: string): Promise<string> {
+      throw new Error('Use signPsbt with broadcast: true for Leather')
+    },
+
+    async getNetwork(): Promise<BitcoinNetwork> {
+      return 'livenet'
+    },
+
+    async switchNetwork(_network: BitcoinNetwork): Promise<void> {
+      throw new Error('Network switching not supported by Leather')
+    },
+
+    async getChain(): Promise<{ enum: string; name: string }> {
+      return { enum: 'BITCOIN_MAINNET', name: 'Bitcoin Mainnet' }
+    },
   }
 }
 
@@ -196,10 +515,14 @@ export function getBitcoinProvider(wallet: BitcoinWalletName): UnisatAPI | undef
     case 'okx':
       // OKX wallet has bitcoin namespace
       return (window as any).okxwallet?.bitcoin
-    case 'xverse':
-    case 'leather':
-      // TODO: Add Xverse and Leather support
-      return undefined
+    case 'xverse': {
+      const xverse = window.XverseProviders?.BitcoinProvider
+      return xverse ? createXverseWrapper(xverse) : undefined
+    }
+    case 'leather': {
+      const leather = window.LeatherProvider || window.btc
+      return leather ? createLeatherWrapper(leather) : undefined
+    }
     default:
       return undefined
   }
@@ -223,14 +546,13 @@ export function detectBitcoinWallets(): BitcoinWalletName[] {
     wallets.push('okx')
   }
 
-  // TODO: Add detection for Xverse and Leather
-  // if ((window as any).XverseProviders?.BitcoinProvider) {
-  //   wallets.push('xverse')
-  // }
-  //
-  // if ((window as any).LeatherProvider) {
-  //   wallets.push('leather')
-  // }
+  if (window.XverseProviders?.BitcoinProvider) {
+    wallets.push('xverse')
+  }
+
+  if (window.LeatherProvider || window.btc) {
+    wallets.push('leather')
+  }
 
   return wallets
 }
