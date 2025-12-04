@@ -100,7 +100,8 @@ router.post(
           symbol: outputToken,
           decimals: 9,
         },
-        minAmount: BigInt(inputAmount) * 95n / 100n, // 5% slippage
+        // Calculate minAmount based on user's slippage tolerance (defaults to 1%)
+        minAmount: BigInt(inputAmount) * BigInt(10000 - Math.floor((slippageTolerance || 1) * 100)) / 10000n,
         maxSlippage: (slippageTolerance || 1) / 100,
       },
       privacy: PrivacyLevel.TRANSPARENT, // Default to transparent for quote

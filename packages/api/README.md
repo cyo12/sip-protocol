@@ -1,5 +1,13 @@
 # @sip-protocol/api
 
+> **Warning: NOT PRODUCTION READY**
+>
+> This API package is intended for development and testing purposes only. Before production deployment:
+> - Replace in-memory swap tracking with a database (PostgreSQL, Redis, or MongoDB)
+> - Integrate real quote providers instead of mock data
+> - Add proper authentication and API key management
+> - Set explicit CORS origins (never use `*` in production)
+
 REST API service for SIP Protocol SDK - Optional wrapper for non-JavaScript backends.
 
 ## Overview
