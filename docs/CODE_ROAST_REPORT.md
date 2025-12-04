@@ -3,373 +3,243 @@
 **Roast Date**: 2025-12-04
 **Repository**: sip-protocol/sip-protocol (Core SDK)
 **Roaster**: CIPHER (--no-mercy mode)
-**Verdict**: NEEDS WORK (but closer to SHIP IT than expected)
+**Verdict**: SHIP IT (with minor fixes)
 
 ---
 
 ## EXECUTIVE SUMMARY
 
-Bismillah. Alhamdulillah, this codebase doesn't make me want to pour bleach in my eyes. That's high praise. With 2,757 tests passing, proper error handling infrastructure, and Zod validation on the API layer, someone clearly cared. But --no-mercy mode means we're digging for sins, and sins we found.
+Bismillah. Alhamdulillah, this codebase has undergone MASSIVE improvements since the last roast. The previous "CAREER ENDERS" (no rate limiting, no auth, CORS wildcard) have ALL been fixed. With 2,757 tests passing, production-ready security middleware, proper error handling, and Sentry + Prometheus monitoring, someone clearly took the last roast to heart.
+
+But --no-mercy mode means we're still digging. And while the critical issues are gone, we found some embarrassing moments that need attention.
 
 ---
 
 ## CAREER ENDERS
 
-### 1. API Server: No Rate Limiting
-**File**: `packages/api/src/server.ts:1-76`
-**Sin**: A public-facing REST API with ZERO rate limiting
+### NONE FOUND
 
-**Evidence**:
-```typescript
-// Security middleware
-app.use(helmet())
-app.use(cors({
-  origin: CORS_ORIGIN,
-  credentials: true,
-}))
-// WHERE IS express-rate-limit?! WHERE IS IT?!
-```
+Alhamdulillah! The previous roast's career enders have been addressed:
+- Rate limiting with `express-rate-limit`
+- API key authentication middleware with timing-safe comparison
+- CORS properly configured (no more `origin: '*'` default)
+- Graceful shutdown handling
+- Sentry error monitoring
+- Prometheus metrics
 
-**Why it's bad**: Your API endpoints are all-you-can-eat buffets for bot farms. Someone will DDoS you by Tuesday. Commitment endpoints? Quote endpoints? All free real estate.
-
-**The Fix**:
-```typescript
-import rateLimit from 'express-rate-limit'
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-})
-app.use('/api/v1', limiter)
-```
-
----
-
-### 2. API Server: No Authentication
-**File**: `packages/api/src/server.ts`
-**Sin**: Public API with no auth, no API keys, nothing
-
-**Evidence**:
-I searched for `authenticate`, `authorization`, `auth`, `JWT`, `jwt`, `bearer` in the entire `packages/api` directory. **Zero matches.**
-
-**Why it's bad**: Anyone can create commitments, generate proofs, get quotes, and execute swaps. Your "REST API service" is a public sandbox with production capabilities. On a *privacy protocol*. Let that sink in.
-
-**The Fix**: Add API key authentication or JWT validation middleware before the routes.
-
----
-
-### 3. CORS Configured to Accept All Origins by Default
-**File**: `packages/api/src/server.ts:14`
-**Sin**: `CORS_ORIGIN = process.env.CORS_ORIGIN || '*'`
-
-**Evidence**:
-```typescript
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*'
-app.use(cors({
-  origin: CORS_ORIGIN,
-  credentials: true, // OH NO
-}))
-```
-
-**Why it's bad**: `credentials: true` with `origin: '*'` is CORS suicide. Browsers block this combo, but the intent shows a fundamental misunderstanding. When CORS_ORIGIN is set to a specific domain, credentials will work... from EVERYWHERE by default during development.
-
-**The Fix**: Never default to `'*'`. Use a whitelist:
-```typescript
-const ALLOWED_ORIGINS = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000']
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true,
-}))
-```
+MashaAllah, this is what fixing tech debt looks like.
 
 ---
 
 ## EMBARRASSING MOMENTS
 
-### 4. Type `any` Abuse in Production Code
-**File**: Multiple source files
-**Sin**: 12 instances of `as any` in production SDK code
+### 1. Type `any` in CLI Production Code
+**File**: `packages/cli/src/commands/keygen.ts:24`
+**Sin**: Using `any` type in production CLI code
 
 **Evidence**:
 ```typescript
-// packages/sdk/src/intent.ts:219
-chain: chain as any,
+let metaAddress: any
 
-// packages/sdk/src/intent.ts:598-599
-fundingProof: fundingProof as any,
-validityProof: validityProof as any,
-
-// packages/sdk/src/cosmos/stealth.ts:126
-chain: chain as any, // Will be updated in types package
-
-// packages/sdk/src/wallet/cosmos/mock.ts:565,576
-} as any  // TWICE
-
-// packages/sdk/src/compliance/reports.ts:551,639
-jurisdiction: jurisdiction as any,  // TWICE
+if (useEd25519) {
+  metaAddress = generateEd25519StealthMetaAddress(chain)
+} else {
+  metaAddress = generateStealthMetaAddress(chain)
+}
 ```
 
-**Why it's bad**: Every `as any` is a lie to the type system. These comments like "Will be updated in types package" - when? It's been here how long? Type safety is the POINT of TypeScript.
+**Why it's bad**: The CLI is user-facing production code. This `any` bypasses all type safety and suggests either laziness or a typing issue that should be fixed with proper union types or interfaces.
 
-**The Fix**: Fix your types. If the types package needs updating, update it. No more kicking the can.
+**The Fix**: Create a proper union type or use the actual return types from the functions.
 
 ---
 
-### 5. Unimplemented Feature Disguised as Production Code
-**File**: `packages/sdk/src/wallet/hardware/ledger.ts:518`
-**Sin**: TODO comment in production code path that throws
+### 2. Deprecated Functions With console.warn in Production
+**File**: `packages/sdk/src/crypto.ts:40-43`
+**Sin**: Deprecated functions that spam console.warn every time they're called
 
 **Evidence**:
 ```typescript
-private buildRawEthereumTx(_tx: HardwareEthereumTx): string {
-  // TODO: Implement proper RLP encoding for Ethereum transactions
-  throw new HardwareWalletError(
-    'Ethereum transaction signing requires RLP encoding which is not yet implemented...',
-    HardwareErrorCode.UNSUPPORTED,
-    'ledger'
+export function createCommitment(value: bigint, blindingFactor?: Uint8Array): Commitment {
+  console.warn(
+    'createCommitment() is deprecated and will be removed in v0.2.0. ' +
+    'Use commit() from "./commitment" instead.'
+  )
+  // ...
+}
+```
+
+**Why it's bad**: If someone IS using the deprecated function in a loop (which happens), they get spammed with thousands of console warnings. This is noisy and annoying. Deprecation warnings should use a one-time warning pattern or be documented without runtime noise.
+
+**The Fix**: Use a singleton warning flag:
+```typescript
+let _deprecationWarned = false
+export function createCommitment(...) {
+  if (!_deprecationWarned) {
+    console.warn('...')
+    _deprecationWarned = true
+  }
+  // ...
+}
+```
+
+---
+
+### 3. console.warn in Production SDK Paths
+**File**: `packages/sdk/src/intent.ts:538-541`
+**Sin**: console.warn in production code path
+
+**Evidence**:
+```typescript
+if (usingPlaceholders) {
+  console.warn(
+    '[createShieldedIntent] WARNING: Using placeholder signatures for proof generation. ' +
+    'These proofs are NOT cryptographically valid. Do NOT use in production!'
   )
 }
 ```
 
-**Why it's bad**: At least it throws instead of silently failing. But why is Ledger Ethereum support even advertised if it doesn't work? The feature should be gated or the code shouldn't exist yet.
+**Why it's bad**: While the warning is valid, it pollutes console output. In SSR environments or production logging, this becomes noise. A proper logger with levels should be used.
 
-**The Fix**: Either implement it or remove Ledger Ethereum from documented features. Don't advertise broken functionality.
-
----
-
-### 6. Console.error Left in Production Hooks
-**File**: `packages/react/src/hooks/use-stealth-address.ts:93-94, 142-143, 158-159, 169-170`
-**Sin**: `console.error` calls in production React hooks
-
-**Evidence**:
-```typescript
-} catch (error) {
-  console.error('Failed to generate stealth addresses:', error)
-  // No error state set, no user feedback, just... console.error
-}
-```
-
-**Why it's bad**: Users won't see console errors. The errors are swallowed in production builds. Either set error state for UI feedback or use a proper error reporting service.
-
-**The Fix**: Use error state, error boundaries, or reporting services. Console.error is for development only.
+**The Fix**: Use the SDK's error/warning pattern or throw an error in production mode. Better yet, this path should throw an error, not just warn.
 
 ---
 
-### 7. CLI Commands Just Log Errors
-**File**: `packages/cli/src/commands/*.ts` (swap.ts, quote.ts, commit.ts, prove.ts, etc.)
-**Sin**: Error handling that just console.error and moves on
+### 4. API .env.example Has Dangerous Default
+**File**: `packages/api/.env.example:6`
+**Sin**: CORS wildcard as the default example
 
 **Evidence**:
-```typescript
-// packages/cli/src/commands/swap.ts:97-98
-} catch (err) {
-  console.error('Failed to execute swap:', err)
-}
-
-// packages/cli/src/commands/quote.ts:84-85
-} catch (err) {
-  console.error('Failed to get quote:', err)
-}
+```
+CORS_ORIGIN=*
 ```
 
-**Why it's bad**: No exit codes! CLI tools should return non-zero exit codes on failure for scripting and CI/CD. `console.error` then... nothing? The process exits 0? Unusable in pipelines.
+**Why it's bad**: While the actual implementation now defaults to localhost in dev, the `.env.example` still shows `*` as the value. Copy-paste developers will copy this to production. Examples should show secure defaults.
 
 **The Fix**:
-```typescript
-} catch (err) {
-  console.error('Failed to execute swap:', err)
-  process.exit(1)
-}
 ```
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+```
+
+---
+
+### 5. Test Files Using `as any` Extensively
+**Files**: Multiple test files (100+ instances)
+**Sin**: Test code full of `as any` type casts
+
+**Evidence** (samples):
+```typescript
+packages/sdk/tests/zcash/shielded-service.test.ts:55:    ;(mockClient.getBlockCount as any).mockResolvedValue(2000000)
+packages/sdk/tests/governance/private-vote.test.ts:342:        ciphertext: `0x${...}` as any,
+packages/sdk/tests/auction/sealed-bid.test.ts:155:          auctionId: 123 as any,
+```
+
+**Why it's bad**: While tests are not production code, excessive `as any` in tests means:
+1. Tests might pass even when types break
+2. Tests don't catch type-related bugs
+3. Hard to refactor with confidence
+
+**The Fix**: Create proper test helpers and typed mocks. If testing invalid inputs, use `// @ts-expect-error` comments which document intent.
 
 ---
 
 ## EYE ROLL COLLECTION
 
-### 8. @ts-expect-error for Browser APIs
-**File**: `packages/sdk/src/proofs/browser-utils.ts:244-246, 490-505`
-**Sin**: 6 `@ts-expect-error` comments for non-standard browser APIs
+### 6. Mock Provider console.warn on Initialize
+**File**: `packages/sdk/src/proofs/mock.ts:109-112`
+**Sin**: Console warning that could be annoying in CI/test environments
 
 **Evidence**:
 ```typescript
-// @ts-expect-error - deviceMemory is non-standard
-navigator.deviceMemory
-// @ts-expect-error - Performance.measureUserAgentSpecificMemory is Chrome-specific
-```
-
-**Why it's bad**: Acceptable for truly non-standard APIs, but these should be properly typed with declaration merging or an `@types` package. At least the comments explain WHY.
-
-**The Fix**: Create a `browser.d.ts` declarations file:
-```typescript
-interface Navigator {
-  deviceMemory?: number
-}
-interface Performance {
-  measureUserAgentSpecificMemory?(): Promise<{bytes: number}>
+async initialize(): Promise<void> {
+  if (!this._warningShown && !this._silent) {
+    console.warn(WARNING_MESSAGE) // Big ASCII box
+    this._warningShown = true
+  }
+  this._isReady = true
 }
 ```
 
----
-
-### 9. Test Files Have ~1,069 Mock Occurrences
-**File**: `packages/sdk/tests/**/*.ts`
-**Sin**: Heavy mocking potentially masking real integration issues
-
-**Evidence**:
-1,069 occurrences of "mock/Mock/stub/Stub/fake/Fake" across 47 test files.
-
-**Why it's potentially bad**: Mocking is fine. Over-mocking leads to tests that pass with green checkmarks while production burns. The Zcash integration tests are properly gated with environment variables, which is correct. But with 1,069 mock usages, are we testing the mocks or the code?
-
-**The Fix**: Balance unit tests (mocked) with integration tests (real). You have some integration tests - ensure they cover critical paths.
+**Why it's meh**: At least there's a `silent` option and it only shows once. But tests should default to silent mode.
 
 ---
 
-### 10. Example Files Filled with Console.log
-**File**: `examples/compliance/index.ts`, `examples/private-swap/index.ts`
-**Sin**: 80+ console.log statements in example files
+### 7. Hardcoded Localhost Defaults Scattered
+**Files**: Multiple wallet adapter files
+**Sin**: Localhost defaults hardcoded in production code
 
 **Evidence**:
 ```typescript
-console.log('Compliance Reporting Example')
-console.log('═══════════════════════════════════════════════════════════════')
-console.log('')
-console.log('STEP 1: Understanding privacy levels')
-// ... 76 more console.logs
-```
-
-**Why it's not terrible**: These are EXAMPLES, not production code. But the console.log ASCII art is... a choice.
-
-**The Fix**: This is actually fine for examples. Just ensure they don't leak into production bundles.
-
----
-
-### 11. No `.env.example` in Root or SDK
-**File**: Project root
-**Sin**: No template for required environment variables
-
-**Evidence**:
-```bash
-$ ls -la .env*
-No .env files in root
-
-$ ls -la packages/sdk/.env*
-No .env files found in SDK
-```
-
-But the code references:
-- `NEAR_INTENTS_JWT`
-- `ZCASH_RPC_USER`
-- `ZCASH_RPC_PASS`
-- `ZCASH_RPC_HOST`
-- `ZCASH_RPC_PORT`
-- `CORS_ORIGIN`
-- `PORT`
-- `NODE_ENV`
-
-**Why it's bad**: New developers have to grep through the codebase to find what env vars are needed. Documentation by archaeology.
-
-**The Fix**: Create `.env.example`:
-```bash
-# NEAR Intents
-NEAR_INTENTS_JWT=
-
-# Zcash RPC (for integration tests)
-ZCASH_RPC_USER=
-ZCASH_RPC_PASS=
-ZCASH_RPC_HOST=127.0.0.1
-ZCASH_RPC_PORT=18232
-
-# API Server
-PORT=3000
-NODE_ENV=development
-CORS_ORIGIN=http://localhost:3000
-```
-
----
-
-### 12. Hardcoded Localhost URLs in Source
-**File**: Multiple files
-**Sin**: Hardcoded localhost/127.0.0.1 defaults scattered through code
-
-**Evidence**:
-```typescript
-// packages/sdk/src/zcash/rpc-client.ts:54
-host: '127.0.0.1',
-
 // packages/sdk/src/wallet/ethereum/types.ts:362
 return 'http://localhost:8545'
 
-// packages/sdk/src/wallet/sui/types.ts:237
-localnet: 'http://localhost:9000',
-
 // packages/sdk/src/wallet/solana/adapter.ts:41
-'localnet': 'http://localhost:8899',
+'localnet': 'http://localhost:8899'
+
+// packages/sdk/src/zcash/rpc-client.ts:54
+host: '127.0.0.1',
+port: 8232,
 ```
 
-**Why it's actually okay**: These are defaults for local development/testing. The real fix would be requiring explicit configuration for production, which is already done via `process.env` checks.
-
-**The Fix**: Document that these are development defaults and production MUST set proper endpoints.
+**Why it's meh**: These are defaults for development, and they're appropriate for dev environments. But production should REQUIRE explicit configuration. Consider throwing an error when NODE_ENV=production and no explicit host is provided.
 
 ---
 
-## MEH TIER
-
-### 13. Single TODO in Production Code
-**File**: `packages/sdk/src/wallet/hardware/ledger.ts:518`
-**Sin**: One lonely TODO
+### 8. CLI Prints Private Keys to Console
+**File**: `packages/cli/src/commands/keygen.ts:54-56`
+**Sin**: Prints private keys directly to stdout
 
 **Evidence**:
 ```typescript
-// TODO: Implement proper RLP encoding for Ethereum transactions
+console.log()
+warning('PRIVATE KEYS - Keep these secure!')
+keyValue('Spending Private Key', spendingPrivKey)
+keyValue('Viewing Private Key', viewingPrivKey)
 ```
 
-**Why it's meh**: Only ONE TODO in the entire SDK source? That's actually impressive restraint. Most codebases have TODO graveyards. This one is clearly documented and throws appropriately.
+**Why it's meh**: It's a keygen tool, so printing keys is expected. BUT:
+1. No warning about terminal history
+2. No option to write to secure file only
+3. Terminal scrollback could expose keys
+
+**Suggestion**: Add `--output-file` option and warn about terminal security.
 
 ---
 
-### 14. Sequential Await in Loop
-**File**: `packages/sdk/src/treasury/treasury.ts:437-438`
-**Sin**: Sequential awaits in for loop
+### 9. API Package Missing Its Own .env.example
+**File**: `packages/api/.env.example`
+**Sin**: The example file is incomplete and different from root
+
+**Evidence** (compared to root `.env.example`):
+```
+# Root has:
+API_KEYS=
+RATE_LIMIT_MAX=100
+SENTRY_DSN=
+METRICS_ENABLED=true
+
+# packages/api/.env.example only has:
+PORT=3000
+NODE_ENV=development
+CORS_ORIGIN=*
+```
+
+**Why it's meh**: The API package's own example is outdated and missing critical variables that the API actually uses.
+
+---
+
+### 10. Skipped Tests Without Clear Reasoning
+**Files**: Multiple test files
+**Sin**: Tests skipped based on environment flags
 
 **Evidence**:
 ```typescript
-for (const recipient of proposal.batchPayment.recipients) {
-  const payment = await createShieldedPayment({...})
-}
+describe.skip('funding proof generation (requires WASM)', () => {
+describe.skipIf(!RPC_CONFIGURED)('ZcashRPCClient Integration', () => {
+describe.skipIf(!hasApiKey)('Live API Tests', () => {
 ```
 
-**Why it's meh**: For batch payments, sequential might actually be intentional (order matters, rate limiting, etc.). But if parallelization is safe, use `Promise.all`.
-
----
-
-## WHAT'S ACTUALLY GOOD
-
-Credit where due - here's what impressed me:
-
-1. **2,757 Tests Passing** - That's not a joke number. Real test coverage.
-
-2. **Proper Error Hierarchy** - `packages/sdk/src/errors.ts` is chef's kiss. Custom error classes, error codes, serialization, stack traces preserved. This is how you do errors.
-
-3. **Zod Validation on API** - Input validation using Zod schemas. Not just checking if required fields exist, but proper type coercion and regex validation.
-
-4. **No Eval/Function Constructor** - Zero `eval()` or `new Function()` usage. Basic security hygiene achieved.
-
-5. **Helmet on Express** - Security headers enabled. Someone read an OWASP checklist.
-
-6. **Git Ignore Properly Configured** - `.env`, `.env.local`, `.env.*.local` all ignored. Secrets won't be committed.
-
-7. **No Hardcoded Secrets** - Searched for API keys, passwords, tokens in code. Found references to `process.env` which is correct.
-
-8. **Comprehensive Type System** - 103 TypeScript files in SDK source, strict types, proper interfaces.
-
-9. **Some Caching** - `quoteCache` in NEAR intents backend. Not everywhere, but where it matters for quote lookups.
+**Why it's meh**: These are actually GOOD patterns (conditional test execution). But `describe.skip` without `skipIf` should have a comment explaining when/if it will be unskipped.
 
 ---
 
@@ -377,41 +247,39 @@ Credit where due - here's what impressed me:
 
 | Category | Score | Notes |
 |----------|-------|-------|
-| Security | 5/10 | No auth/rate limiting on API negates the good stuff |
-| Scalability | 7/10 | Good structure, some caching, sequential awaits manageable |
-| Code Quality | 8/10 | Clean structure, good error handling, some `any` leakage |
-| Testing | 9/10 | 2,757 tests, comprehensive coverage, proper mocking |
-| Documentation | 6/10 | CLAUDE.md is excellent, but missing .env.example |
+| Security | 9/10 | Excellent! Rate limiting, auth, CORS all properly configured |
+| Scalability | 8/10 | Good patterns, no obvious N+1 or memory leaks |
+| Code Quality | 8/10 | Clean TypeScript, minimal `any` in prod code (except CLI) |
+| Testing | 9/10 | 2,757 tests, good coverage, proper mocking |
+| Documentation | 8/10 | Good JSDoc, CLAUDE.md is thorough |
+| DX | 8/10 | Nice CLI banner, clear error messages |
 
-**Overall**: 35/50
+**Overall**: 50/60 (83%) - **SHIP IT**
 
 ---
 
 ## ROASTER'S CLOSING STATEMENT
 
-Wallahu a'lam, this codebase is surprisingly solid for a privacy protocol SDK. The test coverage alone puts it ahead of 90% of crypto projects I've reviewed. The error handling infrastructure shows someone who's been burned by "Error: undefined" in production before.
+MashaAllah, RECTOR. This codebase has been transformed since the last roast. The CAREER ENDERS are gone. Rate limiting, authentication, proper CORS configuration, graceful shutdown, error monitoring with Sentry, metrics with Prometheus - you've built a production-ready API.
 
-BUT.
+The remaining issues are all in the "embarrassing but not fatal" category:
+- Fix the `any` type in the CLI
+- Dedupe those deprecation warnings
+- Update the API package's .env.example
+- Consider proper logging instead of console.warn in SDK
 
-The API server is naked. No auth, no rate limiting, CORS wide open by default. For a privacy protocol. The irony is palpable. You've built Fort Knox's vault door and left the service entrance propped open with a brick.
+The test suite at 2,757 tests is impressive. The cryptographic primitives use @noble/curves (proper choice). The privacy protocol design with stealth addresses, Pedersen commitments, and viewing keys is solid.
 
-The `as any` instances in production code are tech debt that should have been paid before v0.6.0. Comments like "Will be updated in types package" are promises to your future self that present-you keeps breaking.
+**What would make this a 10/10:**
+1. Replace all `as any` with proper types (including tests)
+2. Add structured logging to SDK (pino or similar)
+3. Add `NODE_ENV=production` safety checks for localhost defaults
+4. Create a security.md documenting the security model
 
-The CLI error handling is amateur hour - console.error without exit codes means CI pipelines can't trust your tools.
-
-Ship the SDK. Fix the API server before it touches anything resembling production. Add rate limiting, add authentication, restrict CORS. Then you can call this production-ready.
-
-May Allah guide this code to production-worthiness. Tawfeeq min Allah.
+Tawfeeq min Allah - may your production deployment be smooth. This code is ready for prime time with the minor fixes above.
 
 ---
 
-**Roasted with tough love by CIPHER**
-**--no-mercy mode: ENGAGED**
+*This roast conducted with `--no-mercy` flag. No code crimes went unexamined.*
 
----
-
-```
-─────────────────────────────────────────────────────────────
-📌 YOUR PROMPT: /audit:roast --no-mercy
-─────────────────────────────────────────────────────────────
-```
+*Barakallahu feek for taking code quality seriously.*
