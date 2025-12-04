@@ -149,9 +149,9 @@ describe('Sui Stealth Addresses', () => {
       expect(isValidSuiAddress('0x' + 'g'.repeat(64))).toBe(false)
 
       // Not a string
-      expect(isValidSuiAddress(null as any)).toBe(false)
-      expect(isValidSuiAddress(undefined as any)).toBe(false)
-      expect(isValidSuiAddress(123 as any)).toBe(false)
+      expect(isValidSuiAddress(null as unknown as any)).toBe(false)
+      expect(isValidSuiAddress(undefined as unknown as any)).toBe(false)
+      expect(isValidSuiAddress(123 as unknown as number)).toBe(false)
     })
 
     it('should accept both uppercase and lowercase hex', () => {

@@ -324,7 +324,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
     it('should throw on missing viewing key', async () => {
       await expect(
         reporter.exportForRegulator({
-          viewingKey: null as any,
+          viewingKey: null as unknown as any,
           transactions: encryptedTransactions,
           jurisdiction: 'US',
           format: 'FATF',
@@ -336,7 +336,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
       await expect(
         reporter.exportForRegulator({
           viewingKey,
-          transactions: null as any,
+          transactions: null as unknown as any,
           jurisdiction: 'US',
           format: 'FATF',
         })
@@ -347,7 +347,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
       await expect(
         reporter.exportForRegulator({
           viewingKey,
-          transactions: 'not-an-array' as any,
+          transactions: ''not-an-array' as any' as unknown as string,
           jurisdiction: 'US',
           format: 'FATF',
         })
@@ -359,7 +359,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
         reporter.exportForRegulator({
           viewingKey,
           transactions: encryptedTransactions,
-          jurisdiction: null as any,
+          jurisdiction: null as unknown as any,
           format: 'FATF',
         })
       ).rejects.toThrow('jurisdiction is required')
@@ -370,7 +370,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
         reporter.exportForRegulator({
           viewingKey,
           transactions: encryptedTransactions,
-          jurisdiction: 'INVALID' as any,
+          jurisdiction: ''INVALID' as any' as unknown as string,
           format: 'FATF',
         })
       ).rejects.toThrow('invalid jurisdiction')
@@ -382,7 +382,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
           viewingKey,
           transactions: encryptedTransactions,
           jurisdiction: 'US',
-          format: null as any,
+          format: null as unknown as any,
         })
       ).rejects.toThrow('format is required')
     })
@@ -393,7 +393,7 @@ describe('ComplianceReporter - Regulatory Exports', () => {
           viewingKey,
           transactions: encryptedTransactions,
           jurisdiction: 'US',
-          format: 'INVALID' as any,
+          format: ''INVALID' as any' as unknown as string,
         })
       ).rejects.toThrow('invalid format')
     })

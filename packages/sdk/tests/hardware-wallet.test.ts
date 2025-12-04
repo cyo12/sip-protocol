@@ -55,7 +55,8 @@ describe('Hardware Wallet Adapters', () => {
     })
 
     it('should default to Ethereum path for unknown chains', () => {
-      expect(getDerivationPath('unknown' as any, 0)).toBe("m/44'/60'/0'/0/0")
+      // Test with unknown chain that falls through to default case
+      expect(getDerivationPath('unknown' as ChainId, 0)).toBe("m/44'/60'/0'/0/0")
     })
   })
 

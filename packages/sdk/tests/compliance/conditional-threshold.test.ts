@@ -74,7 +74,7 @@ describe('Conditional Amount Threshold Disclosure', () => {
       expect(() => {
         createAmountThreshold({
           viewingKey: 'key',
-          threshold: 100 as any,
+          threshold: 100 as unknown as bigint,
           commitment: '0xabc',
         })
       }).toThrow('threshold must be a bigint')
@@ -138,13 +138,13 @@ describe('Conditional Amount Threshold Disclosure', () => {
 
     it('should reject non-bigint amount', () => {
       expect(() => {
-        proveExceedsThreshold(100 as any, 10000_000000n)
+        proveExceedsThreshold(100 as unknown as bigint, 10000_000000n)
       }).toThrow('amount must be a bigint')
     })
 
     it('should reject non-bigint threshold', () => {
       expect(() => {
-        proveExceedsThreshold(10000_000000n, 100 as any)
+        proveExceedsThreshold(10000_000000n, 100 as unknown as bigint)
       }).toThrow('threshold must be a bigint')
     })
 
@@ -236,7 +236,7 @@ describe('Conditional Amount Threshold Disclosure', () => {
       })
 
       const proof = proveExceedsThreshold(15000_000000n, 10000_000000n)
-      proof.differenceBlinding = '' as any
+      proof.differenceBlinding = '' as unknown as `0x${string}`
 
       const isValid = verifyThresholdProof(proof, thresholdConfig)
       expect(isValid).toBe(false)

@@ -324,7 +324,7 @@ describe('ComplianceReporter', () => {
     it('should throw on missing viewing key', async () => {
       await expect(
         reporter.generateAuditReport({
-          viewingKey: null as any,
+          viewingKey: null as unknown as any,
           transactions: encryptedTransactions,
           format: 'json',
         })
@@ -335,7 +335,7 @@ describe('ComplianceReporter', () => {
       await expect(
         reporter.generateAuditReport({
           viewingKey,
-          transactions: null as any,
+          transactions: null as unknown as any,
           format: 'json',
         })
       ).rejects.toThrow('transactions array is required')
@@ -345,7 +345,7 @@ describe('ComplianceReporter', () => {
       await expect(
         reporter.generateAuditReport({
           viewingKey,
-          transactions: 'not-an-array' as any,
+          transactions: ''not-an-array' as any' as unknown as string,
           format: 'json',
         })
       ).rejects.toThrow('transactions must be an array')
@@ -356,7 +356,7 @@ describe('ComplianceReporter', () => {
         reporter.generateAuditReport({
           viewingKey,
           transactions: encryptedTransactions,
-          format: 'xml' as any,
+          format: ''xml' as any' as unknown as string,
         })
       ).rejects.toThrow('only JSON and PDF formats are supported')
     })

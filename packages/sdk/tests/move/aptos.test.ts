@@ -134,9 +134,9 @@ describe('Aptos Stealth Addresses', () => {
       expect(isValidAptosAddress('0x' + 'g'.repeat(64))).toBe(false)
 
       // Not a string
-      expect(isValidAptosAddress(null as any)).toBe(false)
-      expect(isValidAptosAddress(undefined as any)).toBe(false)
-      expect(isValidAptosAddress(123 as any)).toBe(false)
+      expect(isValidAptosAddress(null as unknown as any)).toBe(false)
+      expect(isValidAptosAddress(undefined as unknown as any)).toBe(false)
+      expect(isValidAptosAddress(123 as unknown as number)).toBe(false)
     })
 
     it('should accept both uppercase and lowercase hex', () => {

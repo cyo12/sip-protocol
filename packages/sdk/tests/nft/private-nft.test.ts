@@ -872,9 +872,9 @@ describe('PrivateNFT', () => {
       // Mix valid and invalid transfers
       const transfers = [
         validTransfer.transfer,
-        null as any,
-        { invalid: 'transfer' } as any,
-        { nftContract: '0xabc', newOwnerStealth: null } as any,
+        null as unknown as any,
+        { invalid: 'transfer' } as any as unknown as object,
+        { nftContract: '0xabc', newOwnerStealth: null } as any as unknown as object,
       ]
 
       const scanKeyBytes = hexToBytes(bob.spendingPrivateKey.slice(2))
@@ -906,7 +906,7 @@ describe('PrivateNFT', () => {
       const nft = new PrivateNFT()
 
       expect(() => {
-        nft.scanForNFTs(new Uint8Array(32), new Uint8Array(32), 'not-an-array' as any)
+        nft.scanForNFTs(new Uint8Array(32), new Uint8Array(32), ''not-an-array' as any' as unknown as string)
       }).toThrow('transfers must be an array')
     })
   })

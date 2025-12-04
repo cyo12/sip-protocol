@@ -152,7 +152,7 @@ describe('SealedBidAuction', () => {
 
       expect(() => {
         auction.createBid({
-          auctionId: 123 as any,
+          auctionId: 123 as unknown as number,
           amount: 100n,
         })
       }).toThrow(ValidationError)
@@ -164,7 +164,7 @@ describe('SealedBidAuction', () => {
       expect(() => {
         auction.createBid({
           auctionId: 'auction-1',
-          amount: 100 as any,
+          amount: 100 as unknown as bigint,
         })
       }).toThrow(ValidationError)
     })
@@ -198,7 +198,7 @@ describe('SealedBidAuction', () => {
         auction.createBid({
           auctionId: 'auction-1',
           amount: 100n,
-          salt: 'not-a-uint8array' as any,
+          salt: ''not-a-uint8array' as any' as unknown as string,
         })
       }).toThrow(ValidationError)
     })
@@ -302,7 +302,7 @@ describe('SealedBidAuction', () => {
       expect(() => {
         auction.verifyBid({
           commitment: '0x02' + '00'.repeat(32),
-          amount: 100 as any,
+          amount: 100 as unknown as bigint,
           salt: '0x' + '00'.repeat(32),
         })
       }).toThrow(ValidationError)

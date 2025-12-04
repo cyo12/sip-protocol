@@ -207,8 +207,8 @@ describe('Winner Verification', () => {
     it('should return false for null/undefined inputs', () => {
       const bids = createTestBids([100n])
 
-      expect(auction.verifyWinner(null as any, bids)).toBe(false)
-      expect(auction.verifyWinner(bids[0] as any, null as any)).toBe(false)
+      expect(auction.verifyWinner(null as unknown as any, bids)).toBe(false)
+      expect(auction.verifyWinner(bids[0] as any, null as unknown as any)).toBe(false)
       expect(auction.verifyWinner(bids[0] as any, [])).toBe(false)
     })
 
@@ -407,7 +407,7 @@ describe('Winner Verification', () => {
     })
 
     it('should handle null/undefined inputs gracefully', () => {
-      const verification1 = auction.verifyWinnerProof(null as any, [])
+      const verification1 = auction.verifyWinnerProof(null as unknown as any, [])
       expect(verification1.valid).toBe(false)
       expect(verification1.reason).toContain('missing required inputs')
 
@@ -415,7 +415,7 @@ describe('Winner Verification', () => {
       const winner = auction.determineWinner(bids)
       const proof = auction.createWinnerProof(winner, bids)
 
-      const verification2 = auction.verifyWinnerProof(proof, null as any)
+      const verification2 = auction.verifyWinnerProof(proof, null as unknown as any)
       expect(verification2.valid).toBe(false)
       expect(verification2.reason).toContain('missing required inputs')
     })

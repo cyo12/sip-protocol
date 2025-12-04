@@ -339,7 +339,7 @@ describe('PrivateVoting', () => {
       // Tamper with ciphertext
       const tamperedVote: EncryptedVote = {
         ...encryptedVote,
-        ciphertext: `0x${encryptedVote.ciphertext.slice(2).replace(/a/g, 'b')}` as any,
+        ciphertext: `0x${encryptedVote.ciphertext.slice(2).replace(/a/g, 'b')}` as `0x${string}`,
       }
 
       expect(() => {
@@ -374,7 +374,7 @@ describe('PrivateVoting', () => {
       const encryptionKey = generateRandomBytes(32)
 
       expect(() => {
-        voting.revealVote(null as any, encryptionKey)
+        voting.revealVote(null as unknown as EncryptedVote, encryptionKey)
       }).toThrow(ValidationError)
     })
 
@@ -388,7 +388,7 @@ describe('PrivateVoting', () => {
         proposalId: 'proposal-001',
         voter: 'anonymous',
         timestamp: Date.now(),
-      } as any
+      } as unknown as EncryptedVote
 
       expect(() => {
         voting.revealVote(invalidVote, encryptionKey)
@@ -400,7 +400,7 @@ describe('PrivateVoting', () => {
       const encryptionKey = generateRandomBytes(32)
 
       const invalidVote: EncryptedVote = {
-        ciphertext: 'not-hex' as any,
+        ciphertext: 'not-hex' as unknown as `0x${string}`,
         nonce: generateRandomBytes(24),
         encryptionKeyHash: generateRandomBytes(32),
         proposalId: 'proposal-001',
@@ -977,7 +977,7 @@ describe('PrivateVoting', () => {
 
       expect(() => {
         voting.revealTally(tally, [
-          { memberId: 'member1', share: 'invalid-share' } as any,
+          { memberId: 'member1', share: 'invalid-share' } as any as unknown as object,
         ])
       }).toThrow(ValidationError)
     })

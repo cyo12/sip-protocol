@@ -139,8 +139,8 @@ describe('ZcashSwapService', () => {
     })
 
     it('should return false for unsupported routes', () => {
-      expect(service.isRouteSupported('ethereum', 'SOL' as any)).toBe(false)
-      expect(service.isRouteSupported('solana', 'ETH' as any)).toBe(false)
+      expect(service.isRouteSupported('ethereum', ''SOL' as any' as unknown as string)).toBe(false)
+      expect(service.isRouteSupported('solana', ''ETH' as any' as unknown as string)).toBe(false)
     })
   })
 
@@ -238,14 +238,14 @@ describe('ZcashSwapService', () => {
     it('should throw for missing source chain', async () => {
       await expect(service.getQuote({
         ...validQuoteParams,
-        sourceChain: '' as any,
+        sourceChain: ''' as any' as unknown as string,
       })).rejects.toThrow(ValidationError)
     })
 
     it('should throw for missing source token', async () => {
       await expect(service.getQuote({
         ...validQuoteParams,
-        sourceToken: '' as any,
+        sourceToken: ''' as any' as unknown as string,
       })).rejects.toThrow(ValidationError)
     })
 
@@ -280,8 +280,8 @@ describe('ZcashSwapService', () => {
     it('should throw for unsupported route', async () => {
       await expect(service.getQuote({
         ...validQuoteParams,
-        sourceChain: 'bitcoin' as any,
-        sourceToken: 'BTC' as any,
+        sourceChain: ''bitcoin' as any' as unknown as string,
+        sourceToken: ''BTC' as any' as unknown as string,
       })).rejects.toThrow(ValidationError)
     })
 
