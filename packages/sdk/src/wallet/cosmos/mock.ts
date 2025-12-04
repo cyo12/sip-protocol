@@ -28,6 +28,8 @@ import type {
   CosmosAlgo,
   StdSignature,
   PubKey,
+  OfflineSigner,
+  OfflineAminoSigner,
 } from './types'
 import {
   cosmosPublicKeyToHex,
@@ -554,26 +556,28 @@ export function createMockCosmosProvider(
       return true
     },
 
-    async getOfflineSignerAuto(_chainId: string) {
+    async getOfflineSignerAuto(_chainId: string): Promise<OfflineSigner> {
+      const keplrInstance = this
       return {
         async getAccounts(): Promise<readonly CosmosAccountData[]> {
           return [{ address, algo, pubkey: mockPubKey }]
         },
         async signDirect(signerAddress: string, signDoc: DirectSignDoc): Promise<DirectSignResponse> {
-          return this.signDirect(chainId, signerAddress, signDoc)
+          return keplrInstance.signDirect(chainId, signerAddress, signDoc)
         },
-      } as any
+      }
     },
 
-    async getOfflineSignerOnlyAmino(_chainId: string) {
+    async getOfflineSignerOnlyAmino(_chainId: string): Promise<OfflineAminoSigner> {
+      const keplrInstance = this
       return {
         async getAccounts(): Promise<readonly CosmosAccountData[]> {
           return [{ address, algo, pubkey: mockPubKey }]
         },
         async signAmino(signerAddress: string, signDoc: StdSignDoc): Promise<AminoSignResponse> {
-          return this.signAmino(chainId, signerAddress, signDoc)
+          return keplrInstance.signAmino(chainId, signerAddress, signDoc)
         },
-      } as any
+      }
     },
 
     async getOfflineSigner(chainId: string) {

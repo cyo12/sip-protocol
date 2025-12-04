@@ -329,6 +329,9 @@ declare global {
     }
     LeatherProvider?: LeatherAPI
     btc?: LeatherAPI // Alternative Leather injection
+    okxwallet?: {
+      bitcoin?: UnisatAPI // OKX uses same API as Unisat
+    }
   }
 }
 
@@ -514,7 +517,7 @@ export function getBitcoinProvider(wallet: BitcoinWalletName): UnisatAPI | undef
       return window.unisat
     case 'okx':
       // OKX wallet has bitcoin namespace
-      return (window as any).okxwallet?.bitcoin
+      return window.okxwallet?.bitcoin
     case 'xverse': {
       const xverse = window.XverseProviders?.BitcoinProvider
       return xverse ? createXverseWrapper(xverse) : undefined
@@ -542,7 +545,7 @@ export function detectBitcoinWallets(): BitcoinWalletName[] {
     wallets.push('unisat')
   }
 
-  if ((window as any).okxwallet?.bitcoin) {
+  if (window.okxwallet?.bitcoin) {
     wallets.push('okx')
   }
 

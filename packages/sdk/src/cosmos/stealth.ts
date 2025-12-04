@@ -32,6 +32,7 @@ import type {
   StealthAddress,
   StealthAddressRecovery,
   HexString,
+  ChainId,
 } from '@sip-protocol/types'
 import { ValidationError } from '../errors'
 
@@ -118,12 +119,11 @@ export class CosmosStealthService {
     const result = generateStealthMetaAddress('ethereum', label)
 
     // Override chain with actual Cosmos chain ID
-    // Note: This is a workaround since the core types don't include Cosmos chains yet
     return {
       ...result,
       metaAddress: {
         ...result.metaAddress,
-        chain: chain as any, // Will be updated in types package
+        chain: chain as ChainId,
       },
     }
   }

@@ -24,6 +24,7 @@ import type {
   FINCENExport,
   FINCENTransaction,
   CSVExport,
+  Jurisdiction,
 } from './types'
 import { generatePdfReport } from './pdf'
 
@@ -533,7 +534,7 @@ export class ComplianceReporter {
   private exportToFATF(
     reportId: string,
     transactions: DecryptedTransaction[],
-    jurisdiction: string,
+    jurisdiction: Jurisdiction,
     currency: string
   ): FATFExport {
     const fatfTransactions: FATFTransaction[] = transactions.map((tx) => ({
@@ -548,7 +549,7 @@ export class ComplianceReporter {
     return {
       reportId,
       generatedAt: new Date().toISOString(),
-      jurisdiction: jurisdiction as any,
+      jurisdiction,
       transactions: fatfTransactions,
     }
   }
@@ -612,7 +613,7 @@ export class ComplianceReporter {
   private exportToCSV(
     reportId: string,
     transactions: DecryptedTransaction[],
-    jurisdiction: string,
+    jurisdiction: Jurisdiction,
     currency: string
   ): CSVExport {
     const headers = [
@@ -636,7 +637,7 @@ export class ComplianceReporter {
     return {
       reportId,
       generatedAt: new Date().toISOString(),
-      jurisdiction: jurisdiction as any,
+      jurisdiction,
       headers,
       rows,
     }

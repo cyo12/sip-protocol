@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
-import { SIPError, isSIPError } from '@sip-protocol/sdk'
+import { SIPError, ValidationError, isSIPError } from '@sip-protocol/sdk'
+import { logger } from '../logger'
+import { env } from '../config'
 
 /**
  * Global error handler middleware
@@ -10,25 +12,27 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ) {
-  // Log error for debugging
-  console.error('[API Error]', {
+  // Log error with structured logger
+  logger.error({
     path: req.path,
     method: req.method,
     error: err.message,
     stack: err.stack,
-  })
+  }, 'API Error')
 
   // Handle SIP SDK errors
   if (isSIPError(err)) {
     const sipError = err as SIPError
+    // Check if it's a ValidationError with field property
+    const isValidationError = err instanceof ValidationError
     return res.status(400).json({
       success: false,
       error: {
         code: sipError.code,
         message: sipError.message,
         details: {
-          field: (sipError as any).field,
-          expected: (sipError as any).expected,
+          ...(isValidationError && { field: (err as ValidationError).field }),
+          ...sipError.context,
         },
       },
     })
@@ -40,7 +44,7 @@ export function errorHandler(
     error: {
       code: 'INTERNAL_SERVER_ERROR',
       message: 'An unexpected error occurred',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      details: env.isDevelopment ? err.message : undefined,
     },
   })
 }

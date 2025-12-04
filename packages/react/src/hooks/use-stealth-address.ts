@@ -54,12 +54,15 @@ export function useStealthAddress(chain: ChainId): {
   metaAddress: string | null
   stealthAddress: string | null
   isGenerating: boolean
+  error: Error | null
   regenerate: () => void
   copyToClipboard: () => Promise<void>
+  clearError: () => void
 } {
   const [metaAddress, setMetaAddress] = useState<string | null>(null)
   const [stealthAddress, setStealthAddress] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
+  const [error, setError] = useState<Error | null>(null)
 
   // Generate meta-address on mount
   useEffect(() => {
@@ -90,9 +93,11 @@ export function useStealthAddress(chain: ChainId): {
 
         if (cancelled) return
         setStealthAddress(stealthData.stealthAddress.address)
-      } catch (error) {
-        console.error('Failed to generate stealth addresses:', error)
+        setError(null) // Clear any previous error on success
+      } catch (err) {
         if (cancelled) return
+        const error = err instanceof Error ? err : new Error('Failed to generate stealth addresses')
+        setError(error)
         setMetaAddress(null)
         setStealthAddress(null)
       } finally {
@@ -139,8 +144,10 @@ export function useStealthAddress(chain: ChainId): {
           : generateStealthAddress(metaAddressObj)
 
         setStealthAddress(stealthData.stealthAddress.address)
-      } catch (error) {
-        console.error('Failed to regenerate stealth address:', error)
+        setError(null) // Clear any previous error on success
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Failed to regenerate stealth address')
+        setError(error)
       } finally {
         setIsGenerating(false)
       }
@@ -155,8 +162,8 @@ export function useStealthAddress(chain: ChainId): {
 
     try {
       await navigator.clipboard.writeText(stealthAddress)
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
+      setError(null) // Clear any previous error on success
+    } catch (clipboardErr) {
       // Fallback for older browsers
       const textArea = document.createElement('textarea')
       textArea.value = stealthAddress
@@ -166,19 +173,28 @@ export function useStealthAddress(chain: ChainId): {
       textArea.select()
       try {
         document.execCommand('copy')
+        setError(null) // Clear any previous error on success
       } catch (err) {
-        console.error('Fallback copy failed:', err)
+        const error = err instanceof Error ? err : new Error('Failed to copy to clipboard')
+        setError(error)
       } finally {
         document.body.removeChild(textArea)
       }
     }
   }, [stealthAddress])
 
+  // Clear error state
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
   return {
     metaAddress,
     stealthAddress,
     isGenerating,
+    error,
     regenerate,
     copyToClipboard,
+    clearError,
   }
 }

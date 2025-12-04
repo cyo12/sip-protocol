@@ -139,8 +139,6 @@ describe('useStealthAddress', () => {
     })
 
     it('should handle errors gracefully during generation', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
       // Mock generation to throw error
       vi.mocked(sdk.generateStealthMetaAddress).mockImplementation(() => {
         throw new Error('Generation failed')
@@ -156,12 +154,34 @@ describe('useStealthAddress', () => {
       // Should set null values on error
       expect(result.current.metaAddress).toBe(null)
       expect(result.current.stealthAddress).toBe(null)
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to generate stealth addresses:',
-        expect.any(Error)
-      )
+      // Should set error state instead of just console.error
+      expect(result.current.error).toBeInstanceOf(Error)
+      expect(result.current.error?.message).toBe('Generation failed')
+    })
 
-      consoleErrorSpy.mockRestore()
+    it('should clear error with clearError function', async () => {
+      // Mock generation to throw error
+      vi.mocked(sdk.generateStealthMetaAddress).mockImplementation(() => {
+        throw new Error('Generation failed')
+      })
+
+      const { result } = renderHook(() => useStealthAddress('ethereum'))
+
+      // Wait for error handling
+      await waitFor(() => {
+        expect(result.current.isGenerating).toBe(false)
+      })
+
+      // Error should be set
+      expect(result.current.error).toBeInstanceOf(Error)
+
+      // Clear the error
+      act(() => {
+        result.current.clearError()
+      })
+
+      // Error should be cleared
+      expect(result.current.error).toBe(null)
     })
 
     it('should not regenerate if metaAddress is null', async () => {
@@ -298,9 +318,7 @@ describe('useStealthAddress', () => {
       expect(writeTextMock).toHaveBeenCalledWith('0xstealth123')
     })
 
-    it('should handle clipboard API failure gracefully', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
+    it('should handle clipboard API failure gracefully with fallback', async () => {
       // Mock clipboard API to fail
       const writeTextMock = vi.fn().mockRejectedValue(new Error('Clipboard failed'))
       Object.assign(navigator, {
@@ -328,20 +346,50 @@ describe('useStealthAddress', () => {
         await result.current.copyToClipboard()
       })
 
-      // Should attempt fallback
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to copy to clipboard:',
-        expect.any(Error)
-      )
+      // Should attempt fallback (clipboard API failed but fallback succeeded)
       expect(createElementSpy).toHaveBeenCalledWith('textarea')
       expect(appendChildSpy).toHaveBeenCalled()
       expect(document.execCommand).toHaveBeenCalledWith('copy')
       expect(removeChildSpy).toHaveBeenCalled()
+      // No error since fallback succeeded
+      expect(result.current.error).toBe(null)
 
-      consoleErrorSpy.mockRestore()
       createElementSpy.mockRestore()
       appendChildSpy.mockRestore()
       removeChildSpy.mockRestore()
+      document.execCommand = originalExecCommand
+    })
+
+    it('should set error state when both clipboard methods fail', async () => {
+      // Mock clipboard API to fail
+      const writeTextMock = vi.fn().mockRejectedValue(new Error('Clipboard failed'))
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: writeTextMock,
+        },
+      })
+
+      // Mock execCommand to also fail
+      const originalExecCommand = document.execCommand
+      document.execCommand = vi.fn().mockImplementation(() => {
+        throw new Error('execCommand failed')
+      }) as any
+
+      const { result } = renderHook(() => useStealthAddress('ethereum'))
+
+      await waitFor(() => {
+        expect(result.current.isGenerating).toBe(false)
+      })
+
+      await act(async () => {
+        await result.current.copyToClipboard()
+      })
+
+      // Should have error set since both methods failed
+      expect(result.current.error).toBeInstanceOf(Error)
+      // Error is set (original error from execCommand)
+      expect(result.current.error?.message).toBe('execCommand failed')
+
       document.execCommand = originalExecCommand
     })
 

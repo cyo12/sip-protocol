@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import type { HealthResponse, ApiResponse } from '../types/api'
+import { isServerShuttingDown } from '../shutdown'
 
 const router: Router = Router()
 
@@ -38,17 +39,21 @@ const startTime = Date.now()
  *                       type: number
  */
 router.get('/', (req: Request, res: Response) => {
+  const shuttingDown = isServerShuttingDown()
+  const status = shuttingDown ? 'shutting_down' : 'healthy'
+  const statusCode = shuttingDown ? 503 : 200
+
   const response: ApiResponse<HealthResponse> = {
-    success: true,
+    success: !shuttingDown,
     data: {
-      status: 'healthy',
+      status: status as 'healthy',
       version: process.env.npm_package_version || '0.1.0',
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - startTime) / 1000),
     },
   }
 
-  res.json(response)
+  res.status(statusCode).json(response)
 })
 
 export default router

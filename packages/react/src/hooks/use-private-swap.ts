@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useSIP } from './use-sip'
-import type { Quote, PrivacyLevel, CreateIntentParams, TrackedIntent, FulfillmentResult } from '@sip-protocol/types'
+import type { Quote, PrivacyLevel, CreateIntentParams, TrackedIntent, FulfillmentResult, ChainId } from '@sip-protocol/types'
 
 /**
  * Status of the swap lifecycle
@@ -136,7 +136,7 @@ export function usePrivateSwap() {
       const intentParams: CreateIntentParams = {
         input: {
           asset: {
-            chain: params.inputChain as any,
+            chain: params.inputChain as ChainId,
             symbol: params.inputToken,
             address: null,
             decimals: 9, // Default, should be configurable
@@ -145,7 +145,7 @@ export function usePrivateSwap() {
         },
         output: {
           asset: {
-            chain: params.outputChain as any,
+            chain: params.outputChain as ChainId,
             symbol: params.outputToken,
             address: null,
             decimals: 18, // Default, should be configurable
@@ -192,7 +192,7 @@ export function usePrivateSwap() {
       const intentParams: CreateIntentParams = {
         input: {
           asset: {
-            chain: params.input.chain as any,
+            chain: params.input.chain as ChainId,
             symbol: params.input.token,
             address: null,
             decimals: 9, // Default, should be configurable
@@ -201,7 +201,7 @@ export function usePrivateSwap() {
         },
         output: {
           asset: {
-            chain: params.output.chain as any,
+            chain: params.output.chain as ChainId,
             symbol: params.output.token,
             address: null,
             decimals: 18, // Default, should be configurable

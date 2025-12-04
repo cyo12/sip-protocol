@@ -21,9 +21,9 @@ export function createScanCommand(): Command {
         info(`Using ${useEd25519 ? 'ed25519' : 'secp256k1'} curve`)
 
         if (!options.addresses || options.addresses.length === 0) {
-          warning('No addresses provided. Specify addresses with -a flag.')
-          info('Example: sip scan -c ethereum -s 0x... -v 0x... -a 0xabc... 0xdef...')
-          return
+          console.error('No addresses provided. Specify addresses with -a flag.')
+          console.error('Example: sip scan -c ethereum -s 0x... -v 0x... -a 0xabc... 0xdef...')
+          process.exit(1)
         }
 
         const results: Array<{

@@ -18,6 +18,7 @@ import {
   type HexString,
   type Hash,
   type PrivacyLevel,
+  type ChainId,
 } from '@sip-protocol/types'
 import { generateStealthAddress, decodeStealthMetaAddress } from './stealth'
 import {
@@ -216,7 +217,7 @@ export class IntentBuilder {
 
     this.params.input = {
       asset: {
-        chain: chain as any,
+        chain: chain as ChainId,
         symbol: token,
         address: null,
         decimals: 18, // Default, should be looked up
@@ -260,7 +261,7 @@ export class IntentBuilder {
 
     this.params.output = {
       asset: {
-        chain: chain as any,
+        chain: chain as ChainId,
         symbol: token,
         address: null,
         decimals: 18,
@@ -595,8 +596,8 @@ export async function createShieldedIntent(
     // - TRANSPARENT mode (not required)
     // - No proof provider given
     // - Provider not ready
-    fundingProof: fundingProof as any,
-    validityProof: validityProof as any,
+    fundingProof,
+    validityProof,
 
     viewingKeyHash: privacyConfig.viewingKey?.hash,
   }

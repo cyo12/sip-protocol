@@ -34,7 +34,7 @@ import {
   type CosmosStealthResult,
   CHAIN_PREFIXES,
 } from './stealth'
-import type { HexString, StealthMetaAddress } from '@sip-protocol/types'
+import type { HexString, StealthMetaAddress, ChainId } from '@sip-protocol/types'
 import { ValidationError } from '../errors'
 
 /**
@@ -679,7 +679,7 @@ export class CosmosIBCStealthService {
 
     const [, chain, spendingKey, viewingKey] = parts
     return {
-      chain: chain as any,
+      chain: chain as ChainId,
       spendingKey: spendingKey as HexString,
       viewingKey: viewingKey as HexString,
     }

@@ -58,8 +58,8 @@ export function createQuoteCommand(): Command {
         spin.succeed(`Found ${quotes.length} quote(s)`)
 
         if (quotes.length === 0) {
-          console.log('\nNo quotes available')
-          return
+          console.error('\nNo quotes available')
+          process.exit(1)
         }
 
         // Display quotes in table
