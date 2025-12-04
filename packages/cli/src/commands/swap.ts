@@ -14,6 +14,7 @@ export function createSwapCommand(): Command {
     .option('-t, --token <symbol>', 'Token symbol (default: native token)')
     .option('-p, --privacy <level>', 'Privacy level (transparent|shielded|compliant)')
     .option('-r, --recipient <address>', 'Recipient address (optional)')
+    .option('-s, --slippage <percent>', 'Slippage tolerance in percent (default: 5)', parseFloat)
     .option('--solver <id>', 'Specific solver to use')
     .action(async (fromChain: string, toChain: string, amountStr: string, options) => {
       try {
@@ -39,8 +40,13 @@ export function createSwapCommand(): Command {
           decimals: 18,
         }
 
+        // Calculate slippage tolerance (default 5%, range 0-100)
+        const slippagePercent = Math.min(Math.max(options.slippage ?? 5, 0), 100)
+        const slippageTolerance = slippagePercent / 100
+
         // Create intent
         info('Creating shielded intent...')
+        info(`Slippage tolerance: ${slippagePercent}%`)
         const intent = await sip.createIntent({
           input: {
             asset: inputAsset,
@@ -49,7 +55,7 @@ export function createSwapCommand(): Command {
           output: {
             asset: outputAsset,
             minAmount: 0n, // Accept any amount
-            maxSlippage: 0.05, // 5% slippage tolerance
+            maxSlippage: slippageTolerance, // User-configurable slippage
           },
           privacy,
           recipientMetaAddress: options.recipient,
